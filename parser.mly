@@ -13,8 +13,10 @@
 %token COLON
 %token COMMA
 %token EOF
+%token SEMICOLON
+%token CONS
 
-%token LET REC MUTUALREC IN
+%token LET REC MUTUAL_REC IN
 %token TYPE
 %token FUN ARROW CONSTRAINT
 
@@ -24,6 +26,7 @@
 
 %token IF THEN ELSE
 %token MATCH WITH WHEN
+
 %token <string> CONSTRUCTOR
 %token TYPE OF
 %token VERTBAR
