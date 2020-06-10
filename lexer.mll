@@ -16,7 +16,7 @@
     }
 }
 
-let var = ['a'-'z'] ['a'-'z' 'A'-'Z' '0'-'9' ''' '_']*
+let var = ['a'-'z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' ''' '_']*
 let constructor = ['A'-'Z'] ['a'-'z' 'A'-'Z' '_']*
 let int = ['0'-'9'] ['0'-'9']*
 let str = ['"'] [^'\n''"']* ['"']
@@ -24,10 +24,13 @@ let whitespace = [' ' '\t' '\r' '\n']
 
 rule token = parse
 |'\n'             {Lexing.new_line lexbuf; token lexbuf}
-|int as n         {INT (info_of_buf lexbuf, int_of_string n)}
 |whitespace       {token lexbuf}
-|constructor as c {CONSTRUCTOR (info_of_buf lexbuf, c)}
-|var as v         {ID (info_of_buf lexbuf)}
+|int as n         {INT (info_of_buf lexbuf, int_of_string n)}
+|"*"              {TIMES (info_of_buf lexbuf)}
+|"+"              {PLUS (info_of_buf lexbuf)}
+|"-"              {MINUS (info_of_buf lexbuf)}
+|"/"              {DIVIDE (info_of_buf lexbuf)}
+|"mod"            {MOD (info_of_buf lexbuf)}
 
 |"true"           {TRUE (info_of_buf lexbuf)}
 |"false"          {FALSE (info_of_buf lexbuf)}
@@ -38,10 +41,15 @@ rule token = parse
 |"!="
 |"<"              {LT (info_of_buf lexbuf)}
 |">"              {GT (info_of_buf lexbuf)}
+|"not"            {NOT (info_of_buf lexbuf)}
 
 |"if"             {IF (info_of_buf lexbuf)}
 |"then"           {THEN (info_of_buf lexbuf)}
 |"else"           {ELSE (info_of_buf lexbuf)}
+
+|"match"          {MATCH (info_of_buf lexbuf)}
+|"with"           {WITH (info_of_buf lexbuf)}
+|"when"           {WHEN (info_of_buf lexbuf)}
 
 |"{"              {LEFT_BRACE (info_of_buf lexbuf)}
 |"}"              {RIGHT_BRACE (info_of_buf lexbuf)}
@@ -53,9 +61,12 @@ rule token = parse
 |"end"            {END (info_of_buf lexbuf)}
 
 |":"              {COLON (info_of_buf lexbuf)}
+|";"              {SEMICOLON (info_of_buf lexbuf)}
 |"::"             {CONS (info_of_buf lexbuf)}
 |","              {COMMA (info_of_buf lexbuf)}
+|"open"           {OPEN (info_of_buf lexbuf)}
 
+|var as v         {ID (info_of_buf lexbuf)}
 |"let"            {LET (info_of_buf lexbuf)}
 |"rec"            {REC (info_of_buf lexbuf)}
 |"in"             {IN (info_of_buf lexbuf)}
@@ -63,3 +74,12 @@ rule token = parse
 
 |"type"           {TYPE (info_of_buf lexbuf)}
 |"of"             {OF (info_of_buf lexbuf)}
+|"constraint"     {CONSTRAINT (info_of_buf lexbuf)}
+|constructor as c {CONSTRUCTOR (info_of_buf lexbuf, c)}
+
+|"ref"            {REFERENCE (info_of_buf lexbuf)}
+|"!"              {DEREFERENCE (info_of_buf lexbuf)}
+|":="             {ASSIGNREF (info_of_buf lexbuf)}
+
+|"fun"            {FUN (info_of_buf lexbuf)}
+|"->"             {ARROW (info_of_buf lexbuf)}
