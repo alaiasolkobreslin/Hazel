@@ -1,1 +1,3 @@
-(* TODO: write a compiler *)
+open Cli
+
+let _ = parse_command ()
