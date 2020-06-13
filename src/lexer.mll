@@ -41,7 +41,9 @@ rule token = parse
 |"<>"             {NEQ (info_of_buf lexbuf)}
 |"!="
 |"<"              {LT (info_of_buf lexbuf)}
+|"<="             {LEQ (info_of_buf lexbuf)}
 |">"              {GT (info_of_buf lexbuf)}
+|">="             {GEQ (info_of_buf lexbuf)}
 |"not"            {NOT (info_of_buf lexbuf)}
 
 |"if"             {IF (info_of_buf lexbuf)}
