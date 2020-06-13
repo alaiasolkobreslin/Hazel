@@ -16,6 +16,8 @@
     }
 }
 
+let new_line = '\n' | '\r''\n'
+
 let var = ['a'-'z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' ''' '_']*
 let constructor = ['A'-'Z'] ['a'-'z' 'A'-'Z' '_']*
 let int = ['0'-'9'] ['0'-'9']*
@@ -24,8 +26,8 @@ let whitespace = [' ' '\t' '\r' '\n']
 let comment = "(*" [^"*)"]* "*)"
 
 rule token = parse
-|'\n'             {Lexing.new_line lexbuf; token lexbuf}
-|whitespace       {token lexbuf}
+|new_line         {Lexing.new_line lexbuf; token lexbuf}
+|whitespace+      {token lexbuf}
 |int as n         {INT (info_of_buf lexbuf, int_of_string n)}
 |"*"              {TIMES (info_of_buf lexbuf)}
 |"+"              {PLUS (info_of_buf lexbuf)}

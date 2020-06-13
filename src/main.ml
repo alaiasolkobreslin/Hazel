@@ -1,4 +1,6 @@
 open Cli
+open Lexing
+open Parser
 
 let perform_commands commands files out_dir = 
   failwith "unimplemented"

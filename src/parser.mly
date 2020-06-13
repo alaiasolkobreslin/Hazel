@@ -1,8 +1,6 @@
 %{
     open Lexing
 
-    type token = EOF | Token of string
-
     let get_pos_string p =
       string_of_int ( p.pos_lnum ) ^ ":"
       ^ string_of_int ( p.pos_cnum - p.pos_bol + 1 )
@@ -11,11 +9,11 @@
       (get_pos_string p) ^ " " ^ str ^ "\n"
 %}
 
-%token <int> INT
+%token <string> INT
 %token TIMES PLUS MINUS DIVIDE MOD
 
 %token <string> ID
-%token <string> STRING
+%token <string * Lexing.position> STRING
 
 
 %token TRUE FALSE
@@ -46,9 +44,13 @@
 
 %token COMMENT
 
+%start lexer
+%type <string option> lexer
+%%
+
 lexer:
-  | tok = token { Token tok }
-  | EOF { EOF }
+  | tok = token { Some tok }
+  | EOF { None }
 ;
 
 token:
@@ -66,12 +68,12 @@ token:
     { get_return_value $startpos "mod" }
   | i = ID
     { get_return_value $startpos ("id " ^ i) }
-  | STR
+  | STRING
     { let s,p = $1 in
       get_return_value p ("string " ^ (Util.escape_string s))}
-  | CHAR
-    { let s,p = $1 in
-      get_return_value p ("character " ^ (Util.escape_string c))}
+//  | CHAR
+//    { let s,p = $1 in
+//      get_return_value p ("character " ^ (Util.escape_string c))}
   | TRUE
     { get_return_value $startpos "true" }
   | FALSE
@@ -152,9 +154,8 @@ token:
     { get_return_value $startpos "with" }
   | WHEN
     { get_return_value $startpos "when" }
-  | CONSTRUCTOR
-    { let s,p = $1 in
-      get_return_value p ("constructor " ^ s)}
+  | c = CONSTRUCTOR
+    { get_return_value $startpos ("constructor " ^ c)}
   | TYPE
     { get_return_value $startpos "type" }
   | OF
