@@ -30,3 +30,5 @@
 %token <string> CONSTRUCTOR
 %token TYPE OF
 %token VERTBAR
+
+%token COMMENT

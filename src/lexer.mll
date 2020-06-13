@@ -21,6 +21,7 @@ let constructor = ['A'-'Z'] ['a'-'z' 'A'-'Z' '_']*
 let int = ['0'-'9'] ['0'-'9']*
 let str = ['"'] [^'\n''"']* ['"']
 let whitespace = [' ' '\t' '\r' '\n']
+let comment = "(*" [^"*)"]* "*)"
 
 rule token = parse
 |'\n'             {Lexing.new_line lexbuf; token lexbuf}
@@ -81,5 +82,7 @@ rule token = parse
 |"!"              {DEREFERENCE (info_of_buf lexbuf)}
 |":="             {ASSIGNREF (info_of_buf lexbuf)}
 
-|"fun"            {FUN (info_of_buf lexbuf)}
+|"lambda"         {FUN (info_of_buf lexbuf)}
 |"->"             {ARROW (info_of_buf lexbuf)}
+
+|comment as com   {COMMENT (info_of_buf lexbuf)}
