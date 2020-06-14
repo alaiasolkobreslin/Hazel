@@ -10,7 +10,7 @@ let new_line = '\n' | '\r''\n'
 let var = ['a'-'z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' ''' '_']*
 let constructor = ['A'-'Z'] ['a'-'z' 'A'-'Z' '_']*
 let int = ['0'-'9'] ['0'-'9']*
-let str = ['"'] [^'\n''"']* ['"']
+let str = ['"'] [^'"']* ['"']
 let whitespace = [' ' '\t' '\r' '\n']
 
 rule token = parse
