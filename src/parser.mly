@@ -44,6 +44,8 @@
 
 %token COMMENT
 
+%token ANY
+
 %start lexer
 %type <string option> lexer
 %%

@@ -90,3 +90,5 @@ rule token = parse
 |"->"             {ARROW (info_of_buf lexbuf)}
 
 |comment as com   {COMMENT (info_of_buf lexbuf)}
+
+|"any"            {ANY (info_of_buf lexbuf)}
