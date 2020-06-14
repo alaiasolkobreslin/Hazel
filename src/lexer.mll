@@ -44,6 +44,7 @@ rule token = parse
 |"with"           {WITH}
 |"when"           {WHEN}
 
+|"|"              {VERTBAR}
 |"{"              {LEFT_BRACE}
 |"}"              {RIGHT_BRACE}
 |"["              {LEFT_BRACK}
@@ -59,7 +60,6 @@ rule token = parse
 |","              {COMMA}
 |"open"           {OPEN}
 
-|var              {ID (Lexing.lexeme lexbuf)}
 |"let"            {LET}
 |"rec"            {REC}
 |"in"             {IN}
@@ -80,6 +80,12 @@ rule token = parse
 |"any"            {ANY}
 
 |"(*"             { comment lexbuf }
+
+|var              {ID (Lexing.lexeme lexbuf)}
+
+|eof              {EOF}
+| _               {raise (LexingError (lexbuf.lex_start_p, "unrecognized token"))}
+
 
 and comment = parse
   | "*)" { Lexing.new_line lexbuf; token lexbuf }
