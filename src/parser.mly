@@ -17,7 +17,7 @@
 
 
 %token TRUE FALSE
-%token AND OR EQ NEQ LT LEQ GT GEQ NOT
+%token AND OR EQ NEQ PEQ PNEQ LT LEQ GT GEQ NOT
 
 %token LEFT_BRACE RIGHT_BRACE LEFT_BRACK RIGHT_BRACK LEFT_PAREN RIGHT_PAREN BEGIN END
 
@@ -88,6 +88,10 @@ token:
     { get_return_value $startpos "=" }
   | NEQ
     { get_return_value $startpos "<>" }
+  | PEQ
+    { get_return_value $startpos "==" }
+  | PNEQ
+    { get_return_value $startpos "!=" }    
   | LT
     { get_return_value $startpos "<" }
   | LEQ

@@ -29,7 +29,8 @@ rule token = parse
 |"||"             {OR}
 |"="              {EQ}
 |"<>"             {NEQ}
-|"!="
+|"!="             {PNEQ}
+|"=="             {PEQ}
 |"<"              {LT}
 |"<="             {LEQ}
 |">"              {GT}
