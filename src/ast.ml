@@ -1,7 +1,7 @@
 type tuple = Placeholder
 type expr = 
   | Unit 
-  | Int of int 
+  | Int of Int64.t
   | Bool of bool 
   | Var of string 
   | Tuple of tuple
@@ -15,7 +15,7 @@ type expr =
   | Application of (expr * expr)
   | Assignment of (string * expr)
   | Ref of expr
-  | Deref of string
+  | Deref of expr
   | Binop of (bop * expr * expr)
   | Unaop of (unop * expr)
   | Constraint of (string * expr)
