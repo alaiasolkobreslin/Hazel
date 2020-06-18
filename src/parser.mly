@@ -14,6 +14,7 @@
 
 %token <string> ID
 %token <string * Lexing.position> STRING
+%token <string * Lexing.position> CHAR
 
 
 %token TRUE FALSE
