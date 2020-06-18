@@ -4,6 +4,7 @@ type expr =
   | Int of Int64.t
   | Bool of bool 
   | String of string
+  | Char of string
   | Var of string 
   | Tuple of tuple
   | IfThen of (expr * expr * expr)
