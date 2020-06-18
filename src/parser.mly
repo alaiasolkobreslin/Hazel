@@ -10,7 +10,7 @@
 %}
 
 %token <string> INT
-%token TIMES PLUS MINUS DIVIDE MOD
+%token TIMES PLUS MINUS DIVIDE MOD HMUL
 
 %token <string> ID
 %token <string * Lexing.position> STRING
@@ -43,8 +43,6 @@
 %token TYPE OF
 %token VERTBAR
 
-%token COMMENT
-
 %token ANY
 
 %start lexer
@@ -69,14 +67,16 @@ token:
     { get_return_value $startpos "/" }
   | MOD
     { get_return_value $startpos "mod" }
+  | HMUL
+    { get_return_value $startpos ">>*" }
   | i = ID
     { get_return_value $startpos ("id " ^ i) }
   | STRING
     { let s,p = $1 in
       get_return_value p ("string " ^ (Util.escape_string s))}
-//  | CHAR
-//    { let s,p = $1 in
-//      get_return_value p ("character " ^ (Util.escape_string c))}
+  | CHAR
+    { let s,p = $1 in
+      get_return_value p ("character " ^ (Util.escape_string s))}
   | TRUE
     { get_return_value $startpos "true" }
   | FALSE

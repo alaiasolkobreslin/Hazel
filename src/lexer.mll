@@ -51,6 +51,7 @@ rule token = parse
 |"-"              {MINUS}
 |"/"              {DIVIDE}
 |"mod"            {MOD}
+|">>*"            {HMUL}
 
 |"true"           {TRUE}
 |"false"          {FALSE}

@@ -1,4 +1,3 @@
-type tuple = Placeholder
 type expr = 
   | Unit 
   | Int of Int64.t
@@ -6,27 +5,35 @@ type expr =
   | String of string
   | Char of string
   | Var of string 
-  | Tuple of tuple
+  | Tuple of expr list
   | IfThen of (expr * expr * expr)
   | Let of (string * expr * expr)
-  | LetRec of (string * expr * expr)
-  | And of (string * expr * expr)
-  | BeginEnd of expr
+  | LetRec of ((pattern list * expr) list * expr)
   | MatchWithWhen of (expr * (expr * expr * pattern) list) (*extra expr for when *)
-  | Function of (string list * expr)
-  | Application of (expr * expr)
-  | Assignment of (string * expr)
-  | Ref of expr
-  | Deref of expr
+  | Fun of (pattern * expr)
+  | App of (expr * expr)
+  | Ass of (string * expr)
   | Binop of (bop * expr * expr)
   | Unaop of (unop * expr)
   | Constraint of (string * expr)
   | Constructor of (string * types)
-and pattern = Placeholder2
+  | Record of (string * expr) list
+and mutual_rec = string * expr
+and pattern = 
+  | PUnit
+  | PWild
+  | PBool of bool
+  | PInt of int
+  | PString of string
+  | PVar of string
+  | PPair of pattern * pattern
+  | PNil
+  | PCons of pattern * pattern
 and bop = 
   | Plus 
   | Minus 
   | Mult 
+  | HMult
   | Cons 
   | Seq 
   | GT 
@@ -36,14 +43,21 @@ and bop =
   | PEQ 
   | PNEQ 
   | Mod 
-  | BoolAnd
-  | BoolOr
-and unop = Not | Neg 
+  | And
+  | Or
+and unop = Not | Neg | Ref | Deref
 and types = 
-  | Boolean 
-  | Integer 
-  | Product of (types * types) 
-  | Sum of (types * types)
-  | List of types
-  | Terminal
-  | Reference of types
+  | TBool 
+  | TInt 
+  | TString
+  | TChar
+  | TAlias of string * types
+  | TProd of types list (* tuples *)
+  | TSum of string * string * types list (* variants *)
+  | TCons of types
+  | TUnit
+  | TRef of types
+  | TRecord of (string * types) list
+  | TVar of string
+  | TConstraint of types * types 
+  | TFun of types * types
