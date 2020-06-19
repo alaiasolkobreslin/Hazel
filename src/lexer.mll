@@ -46,6 +46,15 @@ rule token = parse
 |new_line         {Lexing.new_line lexbuf; token lexbuf}
 |whitespace+      {token lexbuf}
 |int              {INT (Lexing.lexeme lexbuf)}
+
+|"bool"           {TBOOL}
+|"int"            {TINT}
+|"string"         {TSTRING}
+|"char"           {TCHAR}
+|"unit"           {TUNIT}
+
+|"()"             {UNIT}
+
 |"*"              {TIMES}
 |"+"              {PLUS}
 |"-"              {MINUS}

@@ -1,5 +1,6 @@
 %{
     open Lexing
+    open Ast
 
     let get_pos_string p =
       string_of_int ( p.pos_lnum ) ^ ":"
@@ -16,6 +17,9 @@
 %token <string * Lexing.position> STRING
 %token <string * Lexing.position> CHAR
 
+%token TBOOL TINT TSTRING TCHAR TUNIT
+
+%token UNIT
 
 %token TRUE FALSE
 %token AND OR EQ NEQ PEQ PNEQ LT LEQ GT GEQ NOT
@@ -169,4 +173,29 @@ token:
     { get_return_value $startpos "of" }
   | VERTBAR
     { get_return_value $startpos "|" }
+  | TBOOL
+    { get_return_value $startpos "bool" }
+  | TINT
+    { get_return_value $startpos "int" }
+  | TSTRING
+    { get_return_value $startpos "string" }
+  | TCHAR
+    { get_return_value $startpos "char" }
+  | TUNIT
+    { get_return_value $startpos "unit" }
+  | UNIT
+    { get_return_value $startpos "()" }
+
+types:
+  | i=TUNIT                     {i, TUNIT}
+  | i=TBOOL                     {i, TBOOL}
+  | i=TINT                      {i, TINT}
+  | i=TCHAR                     {i, TCHAR}
+  | i=TSTRING                   {i, TSTRING}
+
+variant:
+  | c = CONSTRUCTOR OF i = ID                       {c}
+  | c = CONSTRUCTOR                                 {c}
+  | v = variant VERTBAR c = CONSTRUCTOR OF i = ID   {v}
+  | v = variant VERTBAR c = CONSTRUCTOR             {v}
 ;

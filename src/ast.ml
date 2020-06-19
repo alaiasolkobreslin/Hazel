@@ -64,7 +64,7 @@ and types =
   | TChar
   | TAlias of string * types
   | TProd of types list (* tuples *)
-  | TSum of string * string * types list (* variants *)
+  | TSum of (string * types option) list (* variants - first string removed so we can combine with alias *)
   | TCons of types
   | TUnit
   | TRef of types
