@@ -1,24 +1,32 @@
-type expr = 
+type parsed = { parsed_pos : Lexing.position; ptype : types option }
+
+and typed = { typed_pos : Lexing.position; ttype : types }
+
+and 'a expr = 
   | Unit 
   | Int of Int64.t
   | Bool of bool 
   | String of string
   | Char of string
   | Var of string 
-  | Tuple of expr list
-  | IfThen of (expr * expr * expr)
-  | Let of (string * expr * expr)
-  | LetRec of ((pattern list * expr) list * expr)
-  | MatchWithWhen of (expr * (expr * expr * pattern) list) (*extra expr for when *)
-  | Fun of (pattern * expr)
-  | App of (expr * expr)
-  | Ass of (string * expr)
-  | Binop of (bop * expr * expr)
-  | Unaop of (unop * expr)
-  | Constraint of (string * expr)
+  | Tuple of 'a expr_ann list
+  | IfThen of ('a expr_ann * 'a expr_ann * 'a expr_ann)
+  | Let of (string * 'a expr_ann * 'a expr_ann)
+  | LetRec of ((pattern list * 'a expr_ann) list * 'a expr_ann)
+  | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * pattern) list) (*extra expr for when *)
+  | Fun of (pattern * 'a expr_ann)
+  | App of ('a expr_ann * 'a expr_ann)
+  | Ass of (string * 'a expr_ann)
+  | Binop of (bop * 'a expr_ann * 'a expr_ann)
+  | Unaop of (unop * 'a expr_ann)
+  | Constraint of (string * 'a expr_ann)
   | Constructor of (string * types)
-  | Record of (string * expr) list
-and mutual_rec = string * expr
+  | Record of (string * 'a expr_ann) list
+
+and 'a expr_ann = 'a * 'a expr
+
+and 'a mutual_rec = string * 'a expr_ann
+
 and pattern = 
   | PUnit
   | PWild
@@ -29,6 +37,7 @@ and pattern =
   | PPair of pattern * pattern
   | PNil
   | PCons of pattern * pattern
+
 and bop = 
   | Plus 
   | Minus 
@@ -45,7 +54,9 @@ and bop =
   | Mod 
   | And
   | Or
+
 and unop = Not | Neg | Ref | Deref
+
 and types = 
   | TBool 
   | TInt 
@@ -61,3 +72,4 @@ and types =
   | TVar of string
   | TConstraint of types * types 
   | TFun of types * types
+  (* and type_decl =  *)
