@@ -63,9 +63,7 @@
 
 let new_line = '\n' | '\r''\n'
 
-let single_int = ['0'-'9']
-let single_char = ['a'-'f' 'A' - 'F']
-let hex_char = single_int | single_char
+let hex_char = ['a'-'f' 'A'-'F' '0'-'9']
 let hex = '\\' 'x' hex_char (hex_char)? (hex_char)? (hex_char)?
 
 let escape_char = '\\' ['n' 't' 'r' '\\' '\"' '\'']
@@ -171,10 +169,10 @@ and comment = parse
 
 and str buf pos = parse
   | escape_char 
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
+      { let uni = convert_to_unicode (Lexing.lexeme lexbuf) pos in
         str (buf ^ uni) pos lexbuf }
   | hex
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
+      { let uni = convert_to_unicode (Lexing.lexeme lexbuf) pos in
         str (buf ^ uni) pos lexbuf }
   | "\"" { buf, pos }
   | eof | "\n"
@@ -185,10 +183,10 @@ and str buf pos = parse
 
 and chr buf pos = parse
   | escape_char 
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
+      { let uni = convert_to_unicode (Lexing.lexeme lexbuf) pos in
         chr (buf ^ uni) pos lexbuf }
   | hex
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
+      { let uni = convert_to_unicode (Lexing.lexeme lexbuf) pos in
         chr (buf ^ uni) pos lexbuf }
   | "'" { string_to_char buf pos }
   | eof | "\n"
