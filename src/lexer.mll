@@ -4,27 +4,61 @@
 
   exception LexingError of Lexing.position * string
 
-  (* let convert_to_unicode str pos = failwith "" 
-     *)
-
-  let string_to_char str pos =
+  let convert_to_unicode str pos = 
     match str with
-    | "\\\\" -> "\\"
-    | "\\n" -> "\n"
-    | "\\t" -> "\t"
-    | "\\r" -> "\r"
-    | "\\\"" -> "\""
-    | "\\\'" -> "\'"
-    | _ ->
+        | "\\n" -> "\n"
+        | "\\\\" -> "\\"
+        | "\\\'" -> "\'"
+        | "\\\"" -> "\""
+        | "\\t" -> "\t"
+        | "\\r" -> "\r"
+        | _ -> let len_of_s = String.length str in
+               let hex = String.sub str 1 (len_of_s -1) in
+    try
       begin
-        let chop_str = String.sub str 1 (String.length str - 1) in
-        let hex_str = "0" ^ chop_str in
-        print_endline hex_str;
-        let decimal = int_of_string hex_str in
-        if Uchar.is_valid decimal then
-          decimal |> Uchar.of_int |> Uchar.to_char |> Char.escaped else
-        raise (LexingError (pos, "unrecognized hex sequence"))
+        (* parsing hex to int and making sure it's a valid unicode character *)
+        let i = int_of_string ("0"^hex) |> Uchar.of_int |> Uchar.to_int in
+        (* making a bytes of size 2 because with only 4 hex digits we can
+           only get to 2 bytes *)
+        let b = Bytes.create 2 in
+        Bytes.set_uint16_be b 0 i;
+        let pow n p =
+          (float_of_int n) ** (float_of_int p) |> int_of_float in
+        let start =
+          (* if ASCII, then only one byte *)
+          if i < pow 2 8 then 1
+          (* otherwise start at index 0 because it takes up two bytes *)
+          else if i < pow 2 16 then 0
+          else raise (LexingError (pos, "parser error"))  in
+        Bytes.sub_string b start (2 - start)
       end
+    with 
+    | _ -> raise (LexingError (pos, "invalid character")) 
+
+  (** [str_to_char str pos] returns [(str, pos)] if [str] is a valid unicode
+      character *)
+  let string_to_char str pos = 
+    let bytes = Bytes.of_string str in
+    match Bytes.length bytes with
+    | 0 -> raise (LexingError (pos, "empty character")) 
+    | 1 -> (str, pos)
+    | 2 ->  let b1 = Char.code (Bytes.get bytes 0) in
+            let b2 = Char.code (Bytes.get bytes 1) in
+            if b1 lsr 5 = 6 && b2 lsr 6 = 2 then (str, pos) else
+            raise (LexingError (pos, "invalid character")) 
+    | 3 ->  let b1 = Char.code (Bytes.get bytes 0) in
+            let b2 = Char.code (Bytes.get bytes 1) in
+            let b3 = Char.code (Bytes.get bytes 2) in
+            if b1 lsr 4 = 14 && b2 lsr 6 = 2 && b3 lsr 6 = 2 then (str, pos) else
+            raise (LexingError (pos, "invalid character")) 
+    | 4 ->  let b1 = Char.code (Bytes.get bytes 0) in
+            let b2 = Char.code (Bytes.get bytes 1) in
+            let b3 = Char.code (Bytes.get bytes 2) in
+            let b4 = Char.code (Bytes.get bytes 3) in
+            if b1 lsr 3 = 30 && b2 lsr 6 = 2 &&
+                b3 lsr 6 = 2 && b4 lsr 6 = 2 then (str, pos) else
+            raise (LexingError (pos, "invalid character")) 
+    | _ -> raise (LexingError (pos, "invalid character")) 
 }
 
 let new_line = '\n' | '\r''\n'
@@ -121,7 +155,7 @@ rule token = parse
 
 |"(*"             { comment lexbuf }
 |"\""             { STRING (str "" lexbuf.lex_start_p lexbuf) }
-|"\'"             { CHAR (chr "" lexbuf.lex_start_p lexbuf) }
+|"'"              { CHAR (chr "" lexbuf.lex_start_p lexbuf) }
 
 |var              {ID (Lexing.lexeme lexbuf)}
 
@@ -137,28 +171,28 @@ and comment = parse
 
 and str buf pos = parse
   | escape_char 
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos in
+      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
         str (buf ^ uni) pos lexbuf }
   | hex
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos in
+      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
         str (buf ^ uni) pos lexbuf }
   | "\"" { buf, pos }
   | eof | "\n"
       { raise (LexingError (lexbuf.lex_start_p, "unclosed string")) }
   | "\\"
       { raise (LexingError (lexbuf.lex_start_p, "invalid escape sequence")) }
-  | _ { raise (LexingError (lexbuf.lex_start_p, "unrecognized character"))}
+  | _ { str (buf^(Lexing.lexeme lexbuf)) pos lexbuf }
 
 and chr buf pos = parse
   | escape_char 
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos in
+      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
         chr (buf ^ uni) pos lexbuf }
   | hex
-      { let uni = string_to_char (Lexing.lexeme lexbuf) pos in
+      { let uni = string_to_char (Lexing.lexeme lexbuf) pos |> fst in
         chr (buf ^ uni) pos lexbuf }
-  | "\'" { (string_to_char buf pos, pos) }
+  | "'" { string_to_char buf pos }
   | eof | "\n"
       { raise (LexingError (lexbuf.lex_start_p, "unclosed string")) }
   | "\\"
       { raise (LexingError (lexbuf.lex_start_p, "invalid escape sequence")) }
-  | _ { raise (LexingError (lexbuf.lex_start_p, "unrecognized character"))}
+  | _ { chr (buf^(Lexing.lexeme lexbuf)) pos lexbuf }
