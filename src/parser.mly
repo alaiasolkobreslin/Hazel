@@ -185,6 +185,7 @@ token:
     { get_return_value $startpos "unit" }
   | UNIT
     { get_return_value $startpos "()" }
+;
 
 types:
   | i=TUNIT                     {i, TUNIT}
@@ -192,6 +193,7 @@ types:
   | i=TINT                      {i, TINT}
   | i=TCHAR                     {i, TCHAR}
   | i=TSTRING                   {i, TSTRING}
+;
 
 variant:
   | c = CONSTRUCTOR OF i = ID                       {c}
