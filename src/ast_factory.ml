@@ -1,6 +1,6 @@
 open Ast
 
-let wrap pos = {parsed_pos = pos}
+let wrap pos = {parsed_pos = pos; ptype = None}
 
 let make_unit pos = (wrap pos, Unit)
 

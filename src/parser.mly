@@ -1,6 +1,7 @@
 %{
     open Lexing
     open Ast
+    open Ast_factory
 
     let get_pos_string p =
       string_of_int ( p.pos_lnum ) ^ ":"
