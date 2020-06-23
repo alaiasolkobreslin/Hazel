@@ -197,8 +197,10 @@ types:
 ;
 
 variant:
-  | c = CONSTRUCTOR OF i = ID                       {c}
-  | c = CONSTRUCTOR                                 {c}
-  | v = variant VERTBAR c = CONSTRUCTOR OF i = ID   {v}
-  | v = variant VERTBAR c = CONSTRUCTOR             {v}
+  | c = CONSTRUCTOR OF i = ID                       {[(c, Some TPlaceholder i)]}
+  | c = CONSTRUCTOR                                 {[(c, None)]}
+  | v = variant VERTBAR c = CONSTRUCTOR OF i = ID   {(c, Some TPlaceholder i)::v}
+  | v = variant VERTBAR c = CONSTRUCTOR             {(c, None)::v}
+  | v = variant END                                 {TSum v}
 ;
+

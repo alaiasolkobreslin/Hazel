@@ -58,6 +58,7 @@ and bop =
 and unop = Not | Neg | Ref | Deref
 
 and types = 
+  | TPlaceholder of string
   | TBool 
   | TInt 
   | TString
