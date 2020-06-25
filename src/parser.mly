@@ -188,6 +188,28 @@ token:
     { get_return_value $startpos "()" }
 ;
 
+expr:
+  | LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }
+  | i=INT                                   { make_int (Int64.of_string i) $startpos }
+  | TRUE                                    { make_bool true $startpos }
+  | FALSE                                   { make_bool false $startpos }
+  | s=STRING                                { make_string s $startpos }
+  | c=CHAR                                  { make_char c $startpos }
+  | i=ID                                    { make_var i $startpos }
+  | LEFT_PAREN t=tuple                      { make_tup t $startpos }
+  | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
+  (* let goes here *)
+  (* let rec goes here *)
+;
+
+tuple:
+  | e=expr RIGHT_PAREN          { e::[] }
+  | e=expr COMMA t=tuple        { e::t }
+;
+
+pattern:
+  
+
 types:
   | i=TUNIT                     {i, TUNIT}
   | i=TBOOL                     {i, TBOOL}
