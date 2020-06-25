@@ -12,9 +12,9 @@ and 'a expr =
   | Tuple of 'a expr_ann list
   | IfThen of ('a expr_ann * 'a expr_ann * 'a expr_ann)
   | Let of (string * 'a expr_ann * 'a expr_ann)
-  | LetRec of ((pattern list * 'a expr_ann) list * 'a expr_ann)
-  | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * pattern) list) (*extra expr for when *)
-  | Fun of (pattern * 'a expr_ann)
+  | LetRec of (('a pattern list * 'a expr_ann) list * 'a expr_ann)
+  | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * 'a pattern) list) (*extra expr for when *)
+  | Fun of ('a pattern * 'a expr_ann)
   | App of ('a expr_ann * 'a expr_ann)
   | Ass of (string * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
@@ -27,16 +27,19 @@ and 'a expr_ann = 'a * 'a expr
 
 and 'a mutual_rec = string * 'a expr_ann
 
-and pattern = 
+and 'a pattern = 
   | PUnit
   | PWild
   | PBool of bool
-  | PInt of int
+  | PInt of Int64.t
   | PString of string
   | PVar of string
-  | PPair of pattern * pattern
+  | PPair of 'a pattern * 'a pattern
+  | PSum of string * 'a pattern
   | PNil
-  | PCons of pattern * pattern
+  | PCons of 'a pattern * 'a pattern
+
+and 'a pattern_ann = 'a * 'a pattern
 
 and bop = 
   | Plus 

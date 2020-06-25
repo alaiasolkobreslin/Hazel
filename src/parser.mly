@@ -207,8 +207,8 @@ tuple:
   | e=expr COMMA t=tuple        { e::t }
 ;
 
-pattern:
-  
+(*pattern:
+  | LEFT_PAREN RIGHT_PAREN   *)               
 
 types:
   | i=TUNIT                     {i, TUNIT}
