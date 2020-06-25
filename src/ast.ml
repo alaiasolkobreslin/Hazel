@@ -2,6 +2,7 @@ type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
 and typed = { typed_pos : Lexing.position; ttype : types }
 
+
 and 'a expr = 
   | Unit 
   | Int of Int64.t
@@ -61,7 +62,7 @@ and bop =
 and unop = Not | Neg | Ref | Deref
 
 and types = 
-  | TPlaceholder of string
+  | TPlaceholder of string (* used for placeholder before typechecking *)
   | TBool 
   | TInt 
   | TString
@@ -77,3 +78,4 @@ and types =
   | TConstraint of types * types 
   | TFun of types * types
   (* and type_decl =  *)
+let wrap pos = {parsed_pos = pos; ptype = None}

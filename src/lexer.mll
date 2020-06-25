@@ -84,6 +84,7 @@ rule token = parse
 |"string"         {TSTRING}
 |"char"           {TCHAR}
 |"unit"           {TUNIT}
+|"list"           {TLIST}
 
 |"()"             {UNIT}
 

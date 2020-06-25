@@ -1,6 +1,5 @@
 open Ast
 
-let wrap pos = {parsed_pos = pos; ptype = None}
 
 let make_unit pos = (wrap pos, Unit)
 
@@ -17,6 +16,10 @@ let make_var v pos = (wrap pos, Var v)
 let make_tup lst pos = (wrap pos, lst)
 
 let make_if_then e1 e2 e3 pos = (wrap pos, IfThen (e1, e2, e3))
+
+let make_variant str e pos = (wrap pos, Constructor (str, e))
+
+let make_constraint str e pos = (wrap pos, Constraint (str, e))
 
 (* TODO: finish exprs  *)
 
@@ -39,3 +42,24 @@ let make_nil_pat pos = (wrap pos, PNil)
 let make_cons_pat p1 p2 pos = (wrap pos, PCons (p1, p2))
 
 let make_sum_pat s p pos = (wrap pos, PSum (s, p))
+
+
+let make_tunit u pos = (wrap pos, TUnit)
+
+let make_tbool b pos = (wrap pos, TBool)
+
+let make_tint i pos = (wrap pos, TInt)
+
+let make_tchar c pos = (wrap pos, TChar)
+
+let make_tstring s pos = (wrap pos, TString)
+
+let make_tsum lst pos = (wrap pos, TSum lst)
+
+let make_tprod lst pos = (wrap pos, TProd (List.rev lst)) (*List is reversed because order matters for tuples *)
+
+let make_trecord lst pos = (wrap pos, TRecord lst)
+
+let make_tlist t pos = (wrap pos, TCons t)
+
+let make_talias n t pos = (wrap pos, TAlias (n,t))

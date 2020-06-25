@@ -18,7 +18,7 @@
 %token <string * Lexing.position> STRING
 %token <string * Lexing.position> CHAR
 
-%token TBOOL TINT TSTRING TCHAR TUNIT
+%token TBOOL TINT TSTRING TCHAR TUNIT TLIST
 
 %token UNIT
 
@@ -184,6 +184,8 @@ token:
     { get_return_value $startpos "string" }
   | TCHAR
     { get_return_value $startpos "char" }
+  | TLIST
+    { get_return_value $startpos "list" }
   | TUNIT
     { get_return_value $startpos "unit" }
   | UNIT
@@ -202,6 +204,9 @@ expr:
   | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
   (* let goes here *)
   (* let rec goes here *)
+  (*etc. *)
+  | c=CONSTRUCTOR e=expr                    {make_variant c e $startpos}
+  | c=CONSTRAINT e=expr                     {make_constraint c e $startpos}
 ;
 
 tuple:
@@ -224,18 +229,58 @@ pattern:
   | p1=pattern CONS p2=pattern              { make_cons_pat p1 p2 $startpos }
 
 types:
-  | i=TUNIT                     {i, TUNIT}
-  | i=TBOOL                     {i, TBOOL}
-  | i=TINT                      {i, TINT}
-  | i=TCHAR                     {i, TCHAR}
-  | i=TSTRING                   {i, TSTRING}
-;
+  | i=TUNIT                     {make_tunit i $startpos}
+  | i=TBOOL                     {make_tbool i $startpos}
+  | i=TINT                      {make_tint i $startpos}
+  | i=TCHAR                     {make_tchar i $startpos}
+  | i=TSTRING                   {make_tstring i $startpos}
+
+tuplet:
+  | LEFT_PAREN i=ID                           {[TPlaceholder i]}
+  | LEFT_PAREN t=types                        {[t]}
+  | LEFT_PAREN r=record                       {[r]}
+  | LEFT_PAREN l=list                         {[l]}
+  | t=tuplet TIMES i=ID                       {(TPlaceholder i)::t}
+  | tu=tuplet TIMES t=types                   {t::tu}
+  | t=tuplet TIMES r=record                   {r::t}
+  | t=tuplet TIMES l=list                     {t::l}
+  | t=tuplet RIGHT_PAREN                      {make_tprod t $startpos}
+
+record:
+  |LEFT_BRACK i1=ID COLON i2=ID               {[(i1, TPlaceholder i2)]}
+  |LEFT_BRACK i1=ID COLON t=types             {[(i1, t)]}
+  |LEFT_BRACK i1=ID COLON t=tuplet            {[(i1, t)]}
+  |LEFT_BRACK i1=ID COLON l=list              {[(i1, l)]}
+  |r=record SEMICOLON i1=ID COLON i2=ID       {(i1, TPlaceholder i2)::r}
+  |r=record SEMICOLON i1=ID COLON t=types     {(i1, t)::r}
+  |r=record SEMICOLON i1=ID COLON t=tuplet    {(i1, t)::r}
+  |r=record SEMICOLON i1=ID COLON l=list      {(i1, l)::r}
+  |r=record RIGHT_BRACK                       {make_trecord r}
 
 variant:
-  | c = CONSTRUCTOR OF i = ID                       {[(c, Some TPlaceholder i)]}
-  | c = CONSTRUCTOR                                 {[(c, None)]}
-  | v = variant VERTBAR c = CONSTRUCTOR OF i = ID   {(c, Some TPlaceholder i)::v}
-  | v = variant VERTBAR c = CONSTRUCTOR             {(c, None)::v}
-  | v = variant END                                 {TSum v}
-;
+  | c=CONSTRUCTOR OF i = ID                      {[(c, Some TPlaceholder i)]}
+  | c=CONSTRUCTOR OF t=types                     {[(c, Some t)]}
+  | c=CONSTRUCTOR OF t=tuplet                    {[(c, Some t)]}
+  | c=CONSTRUCTOR OF r=record                    {[(c, Some r)]}
+  | c=CONSTRUCTOR OF l=list                      {[(c, Some l)]}
+  | c=CONSTRUCTOR                                {[(c, None)]}
+  | v=variant VERTBAR c=CONSTRUCTOR OF i=ID      {(c, Some TPlaceholder i)::v}
+  | v=variant VERTBAR c=CONSTRUCTOR OF t=types   {(c, Some t)::v}
+  | v=variant VERTBAR c=CONSTRUCTOR OF t=tuplet  {(c, Some t)::v}
+  | v=variant VERTBAR c=CONSTRUCTOR OF r=record  {(c, Some r)::v}
+  | v=variant VERTBAR c=CONSTRUCTOR OF l=list    {(c, Some l)::v}
+  | v=variant VERTBAR c=CONSTRUCTOR              {(c, None)::v}
+  | v=variant END                                {make_tsum v $startpos}
 
+list:
+  |t=types TLIST                               {make_tlist t $startpos}
+  |tu=tuplet TLIST                             {make_tlist tu $startpos}
+  |r=record TLIST                              {make_tlist r $startpos}
+  |i=ID TLIST                                  {make_tlist (TPlaceholder i) $startpos}
+
+alias:
+  | TYPE i=ID EQ v=variant                     {make_alias i v $startpos}
+  | TYPE i=ID EQ t=types                       {make_alias i t $startpos}
+  | TYPE i=ID EQ p=tuplet                      {make_alias i p $startpos}
+  | TYPE i=ID EQ l=list                        {make_alias i l $startpos}
+  | TYPE i=ID EQ r=record                      {make_alias i r $startpos}
