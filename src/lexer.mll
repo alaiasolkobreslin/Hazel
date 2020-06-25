@@ -123,6 +123,7 @@ rule token = parse
 |"]"              {RIGHT_BRACK}
 |"("              {LEFT_PAREN}
 |")"              {RIGHT_PAREN}
+|"_"              {UNDERSCORE}
 |"begin"          {BEGIN}
 |"end"            {END}
 

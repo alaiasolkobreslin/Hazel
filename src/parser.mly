@@ -25,7 +25,7 @@
 %token TRUE FALSE
 %token AND OR EQ NEQ PEQ PNEQ LT LEQ GT GEQ NOT
 
-%token LEFT_BRACE RIGHT_BRACE LEFT_BRACK RIGHT_BRACK LEFT_PAREN RIGHT_PAREN BEGIN END
+%token LEFT_BRACE RIGHT_BRACE LEFT_BRACK RIGHT_BRACK LEFT_PAREN RIGHT_PAREN UNDERSCORE BEGIN END
 
 %token COLON
 %token COMMA
@@ -120,6 +120,8 @@ token:
     { get_return_value $startpos "(" }
   | RIGHT_PAREN
     { get_return_value $startpos ")" }
+  | UNDERSCORE
+    { get_return_value $startpos "_" }
   | BEGIN
     { get_return_value $startpos "begin" }
   | END
@@ -207,8 +209,19 @@ tuple:
   | e=expr COMMA t=tuple        { e::t }
 ;
 
-(*pattern:
-  | LEFT_PAREN RIGHT_PAREN   *)               
+pattern:
+  | LEFT_PAREN RIGHT_PAREN                  { make_unit_pat $startpos }
+  | UNDERSCORE                              { make_wild_pat $startpos }
+  | i=INT                                   { make_int_pat (Int64.of_string i) $startpos }
+  | TRUE                                    { make_bool_pat true $startpos }
+  | FALSE                                   { make_bool_pat false $startpos }
+  | s=STRING                                { make_string_pat s $startpos }
+  | i=ID                                    { make_var_pat i $startpos }
+  | p1=pattern COMMA p2=pattern             { make_pair_pat p1 p2 $startpos }
+  | LEFT_PAREN p=pattern RIGHT_PAREN        { p }
+  | i=ID p=pattern                          { make_sum_pat i p $startpos }
+  | LEFT_BRACK RIGHT_BRACK                  { make_nil_pat $startpos }
+  | p1=pattern CONS p2=pattern              { make_cons_pat p1 p2 $startpos }
 
 types:
   | i=TUNIT                     {i, TUNIT}
