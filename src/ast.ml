@@ -12,12 +12,12 @@ and 'a expr =
   | Var of string 
   | Tuple of 'a expr_ann list
   | IfThen of ('a expr_ann * 'a expr_ann * 'a expr_ann)
-  | Let of (string * 'a expr_ann * 'a expr_ann)
+  | Let of ('a pattern * 'a expr_ann * 'a expr_ann)
   | LetRec of (('a pattern list * 'a expr_ann) list * 'a expr_ann)
   | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * 'a pattern) list) (*extra expr for when *)
   | Fun of ('a pattern * 'a expr_ann)
   | App of ('a expr_ann * 'a expr_ann)
-  | Ass of (string * 'a expr_ann)
+  | Ass of ('a expr_ann * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
   | Constraint of (string * 'a expr_ann)
