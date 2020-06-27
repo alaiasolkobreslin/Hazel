@@ -231,6 +231,7 @@ bop:
   | PNEQ                                    { PNEQ }
   | AND                                     { And }
   | OR                                      { Or }
+  | ASSIGNREF                               { Ass }
 ;
 
 uop:

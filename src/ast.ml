@@ -17,7 +17,6 @@ and 'a expr =
   | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * 'a pattern) list) (*extra expr for when *)
   | Fun of ('a pattern * 'a expr_ann)
   | App of ('a expr_ann * 'a expr_ann)
-  | Ass of ('a expr_ann * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
   | Constraint of (string * 'a expr_ann)
@@ -52,13 +51,16 @@ and bop =
   | Cons 
   | Seq 
   | GT 
-  | LT 
+  | GEQ
+  | LT
+  | LEQ 
   | EQ 
   | NEQ 
   | PEQ 
   | PNEQ 
   | And
   | Or
+  | Ass
 
 and unop = Not | Neg | Ref | Deref
 
