@@ -46,6 +46,8 @@ and bop =
   | Plus 
   | Minus 
   | Mult 
+  | Div
+  | Mod
   | HMult
   | Cons 
   | Seq 
@@ -55,7 +57,6 @@ and bop =
   | NEQ 
   | PEQ 
   | PNEQ 
-  | Mod 
   | And
   | Or
 

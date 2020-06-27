@@ -21,6 +21,10 @@ let make_variant str e pos = (wrap pos, Constructor (str, e))
 
 let make_constraint str e pos = (wrap pos, Constraint (str, e))
 
+let make_binop bop e1 e2 pos = (wrap pos, Binop (bop, e1, e2))
+
+let make_unop uop e pos = (wrap pos, Unaop (uop, e))
+
 (* TODO: finish exprs  *)
 
 let make_unit_pat pos = (wrap pos, PUnit)

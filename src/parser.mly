@@ -194,6 +194,7 @@ token:
 
 expr:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }
+  | LEFT_PAREN e=expr RIGHT_PAREN           { e }
   | i=INT                                   { make_int (Int64.of_string i) $startpos }
   | TRUE                                    { make_bool true $startpos }
   | FALSE                                   { make_bool false $startpos }
@@ -202,11 +203,41 @@ expr:
   | i=ID                                    { make_var i $startpos }
   | LEFT_PAREN t=tuple                      { make_tup t $startpos }
   | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
+  | e1=expr b=bop e2=expr                   { make_binop b e1 e2 $startpos }
+  | u=uop e=expr                            { make_unop u e $startpos }
   (* let goes here *)
   (* let rec goes here *)
   (*etc. *)
   | c=CONSTRUCTOR e=expr                    {make_variant c e $startpos}
   | c=CONSTRAINT e=expr                     {make_constraint c e $startpos}
+;
+
+bop:
+  | PLUS                                    { Plus }
+  | MINUS                                   { Minus }
+  | TIMES                                   { Mult }
+  | DIVIDE                                  { Div }
+  | MOD                                     { Mod }
+  | HMUL                                    { HMult }
+  | CONS                                    { Cons }
+  | SEMICOLON                               { Seq }
+  | GT                                      { GT }
+  | LT                                      { LT }
+  | GEQ                                     { GEQ }
+  | LEQ                                     { LEQ }
+  | EQ                                      { EQ }
+  | NEQ                                     { NEQ }
+  | PEQ                                     { PEQ }
+  | PNEQ                                    { PNEQ }
+  | AND                                     { And }
+  | OR                                      { Or }
+;
+
+uop:
+  | NOT                                     { Not }
+  | MINUS                                   { Neg }
+  | REFERENCE                               { Ref }
+  | DEREFERENCE                             { Deref }
 ;
 
 tuple:
@@ -284,13 +315,13 @@ reference:
   |r=record REFERENCE                          {make_tref r $startpos}
   |i=ID REFERENCE                              {make_tref (TPlaceholder i) $startpos}
 
-function:
+function_t:
   |t1=types ARROW t2=types                      {make_tfun (t1, t2) $startpos}
   |t=types ARROW tu=tuplet                      {make_tfun (t, tu) $startpos}
   |t=types ARROW r=record                       {make_tfun (t, r) $startpos}
   |t=types ARROW l=list                         {make_tfun (t, l) $startpos}
   |t=types ARROW r=reference                    {make_tfun (t, r) $startpos}
-  |t=types ARROW f=function                     {make_tfun (t, f) $startpos}
+  |t=types ARROW f=function_t                   {make_tfun (t, f) $startpos}
   |t=types ARROW i=ID                           {make_tfun (t, i) $startpos}
 
   |t1=tuplet ARROW t2=types                     {make_tfun (t1, t2) $startpos}
@@ -298,7 +329,7 @@ function:
   |t=tuplet ARROW r=record                      {make_tfun (t, r) $startpos}
   |t=tuplet ARROW l=list                        {make_tfun (t, l) $startpos}
   |t=tuplet ARROW r=reference                   {make_tfun (t, r) $startpos}
-  |t=tuplet ARROW f=function                    {make_tfun (t, f) $startpos}
+  |t=tuplet ARROW f=function_t                  {make_tfun (t, f) $startpos}
   |t=tuplet ARROW i=ID                          {make_tfun (t, i) $startpos}
 
   |r=record ARROW t2=types                      {make_tfun (r, t2) $startpos}
@@ -306,7 +337,7 @@ function:
   |r1=record ARROW r2=record                    {make_tfun (r1, r2) $startpos}
   |r=record ARROW l=list                        {make_tfun (r, l) $startpos}
   |r=record ARROW r2=reference                  {make_tfun (r, r2) $startpos}
-  |r=record ARROW f=function                    {make_tfun (r, f) $startpos}
+  |r=record ARROW f=function_t                  {make_tfun (r, f) $startpos}
   |r=record ARROW i=ID                          {make_tfun (r, i) $startpos}
 
   |l=list ARROW t2=types                        {make_tfun (l, t2) $startpos}
@@ -314,7 +345,7 @@ function:
   |l=list ARROW r=record                        {make_tfun (l, r) $startpos}
   |l=list ARROW l2=list                         {make_tfun (l, l2) $startpos}
   |l=list ARROW r=reference                     {make_tfun (l, r) $startpos}
-  |l=list ARROW f=function                      {make_tfun (l, f) $startpos}
+  |l=list ARROW f=function_t                    {make_tfun (l, f) $startpos}
   |l=list ARROW i=ID                            {make_tfun (l, i) $startpos}
 
   |r=reference ARROW t2=types                   {make_tfun (r, t2) $startpos}
@@ -322,23 +353,23 @@ function:
   |r=reference ARROW r2=record                  {make_tfun (r, r2) $startpos}
   |r=reference ARROW l=list                     {make_tfun (r, l) $startpos}
   |r=reference ARROW r2=reference               {make_tfun (r, r2) $startpos}
-  |r=reference ARROW f=function                 {make_tfun (r, f) $startpos}
+  |r=reference ARROW f=function_t               {make_tfun (r, f) $startpos}
   |r=reference ARROW i=ID                       {make_tfun (r, i) $startpos}
 
-  |f=function ARROW t2=types                   {make_tfun (f, t2) $startpos}
-  |f=function ARROW tu=tuplet                  {make_tfun (f, tu) $startpos}
-  |f=function ARROW r2=record                  {make_tfun (f, r2) $startpos}
-  |f=function ARROW l=list                     {make_tfun (f, l) $startpos}
-  |f=function ARROW r2=reference               {make_tfun (f, r2) $startpos}
-  |f=function ARROW f2=function                {make_tfun (f, f2) $startpos}
-  |f=function ARROW i=ID                       {make_tfun (f, i) $startpos}
+  |f=function_t ARROW t2=types                   {make_tfun (f, t2) $startpos}
+  |f=function_t ARROW tu=tuplet                  {make_tfun (f, tu) $startpos}
+  |f=function_t ARROW r2=record                  {make_tfun (f, r2) $startpos}
+  |f=function_t ARROW l=list                     {make_tfun (f, l) $startpos}
+  |f=function_t ARROW r2=reference               {make_tfun (f, r2) $startpos}
+  |f=function_t ARROW f2=function_t              {make_tfun (f, f2) $startpos}
+  |f=function_t ARROW i=ID                       {make_tfun (f, i) $startpos}
 
   |i=ID ARROW t2=types                         {make_tfun (i, t2) $startpos}
   |i=ID ARROW tu=tuplet                        {make_tfun (i, tu) $startpos}
   |i=ID ARROW r2=record                        {make_tfun (i, r2) $startpos}
   |i=ID ARROW l=list                           {make_tfun (i, l) $startpos}
   |i=ID ARROW r2=reference                     {make_tfun (i, r2) $startpos}
-  |i=IDn ARROW f2=function                     {make_tfun (i, f2) $startpos}
+  |i=ID ARROW f2=function_t                    {make_tfun (i, f2) $startpos}
   |i=ID ARROW i2=ID                            {make_tfun (i, i2) $startpos}
 
 alias:
@@ -348,4 +379,4 @@ alias:
   | TYPE i=ID EQ l=list                        {make_alias i l $startpos}
   | TYPE i=ID EQ r=record                      {make_alias i r $startpos}
   | TYPE i=ID EQ r2=reference                  {make_alias i r2 $startpos}
-  | TYPE i=ID EQ f=function                    {make_alias i f $startpos}
+  | TYPE i=ID EQ f=function_t                  {make_alias i f $startpos}
