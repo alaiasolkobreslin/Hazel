@@ -68,6 +68,6 @@ let make_tlist t pos = (wrap pos, TCons t)
 
 let make_tref t pos = (wrap pos, TRef t)
 
-let make_tfun p pos = (wrap pos, TFun p)
+let make_tfun (p1,p2) pos = (wrap pos, TFun (p1, p2))
 
 let make_talias n t pos = (wrap pos, TAlias (n,t))

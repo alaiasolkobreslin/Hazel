@@ -268,110 +268,38 @@ types:
   | i=TSTRING                   {make_tstring i $startpos}
 
 tuplet:
-  | LEFT_PAREN i=ID                           {[TPlaceholder i]}
-  | LEFT_PAREN t=types                        {[t]}
-  | LEFT_PAREN r=record                       {[r]}
-  | LEFT_PAREN l=list                         {[l]}
-  | t=tuplet TIMES i=ID                       {(TPlaceholder i)::t}
-  | tu=tuplet TIMES t=types                   {t::tu}
-  | t=tuplet TIMES r=record                   {r::t}
-  | t=tuplet TIMES l=list                     {t::l}
+  | LEFT_PAREN g=generic                           {[g]}
+  | t=tuplet TIMES g=generic                       {g::t}
   | t=tuplet RIGHT_PAREN                      {make_tprod t $startpos}
 
 record:
-  |LEFT_BRACK i1=ID COLON i2=ID               {[(i1, TPlaceholder i2)]}
-  |LEFT_BRACK i1=ID COLON t=types             {[(i1, t)]}
-  |LEFT_BRACK i1=ID COLON t=tuplet            {[(i1, t)]}
-  |LEFT_BRACK i1=ID COLON l=list              {[(i1, l)]}
-  |r=record SEMICOLON i1=ID COLON i2=ID       {(i1, TPlaceholder i2)::r}
-  |r=record SEMICOLON i1=ID COLON t=types     {(i1, t)::r}
-  |r=record SEMICOLON i1=ID COLON t=tuplet    {(i1, t)::r}
-  |r=record SEMICOLON i1=ID COLON l=list      {(i1, l)::r}
+  |LEFT_BRACK i1=ID COLON g=generic           {[(i1, g)]}
+  |r=record SEMICOLON i1=ID COLON g=generic   {(i1, g)::r}
   |r=record RIGHT_BRACK                       {make_trecord r}
 
 variant:
-  | c=CONSTRUCTOR OF i = ID                      {[(c, Some TPlaceholder i)]}
-  | c=CONSTRUCTOR OF t=types                     {[(c, Some t)]}
-  | c=CONSTRUCTOR OF t=tuplet                    {[(c, Some t)]}
-  | c=CONSTRUCTOR OF r=record                    {[(c, Some r)]}
-  | c=CONSTRUCTOR OF l=list                      {[(c, Some l)]}
+  | c=CONSTRUCTOR OF g=generic                   {[(c, Some g)]}
   | c=CONSTRUCTOR                                {[(c, None)]}
-  | v=variant VERTBAR c=CONSTRUCTOR OF i=ID      {(c, Some TPlaceholder i)::v}
-  | v=variant VERTBAR c=CONSTRUCTOR OF t=types   {(c, Some t)::v}
-  | v=variant VERTBAR c=CONSTRUCTOR OF t=tuplet  {(c, Some t)::v}
-  | v=variant VERTBAR c=CONSTRUCTOR OF r=record  {(c, Some r)::v}
-  | v=variant VERTBAR c=CONSTRUCTOR OF l=list    {(c, Some l)::v}
+  | v=variant VERTBAR c=CONSTRUCTOR OF g=generic {(c, Some g)::v}
   | v=variant VERTBAR c=CONSTRUCTOR              {(c, None)::v}
   | v=variant END                                {make_tsum v $startpos}
 
 list:
-  |t=types TLIST                               {make_tlist t $startpos}
-  |tu=tuplet TLIST                             {make_tlist tu $startpos}
-  |r=record TLIST                              {make_tlist r $startpos}
-  |i=ID TLIST                                  {make_tlist (TPlaceholder i) $startpos}
+  |g=generic TLIST                               {make_tlist gg $startpos}
 
 reference:
-  |t=types REFERENCE                           {make_tref t $startpos}
-  |tu=tuplet REFERENCE                         {make_tref tu $startpos}
-  |r=record REFERENCE                          {make_tref r $startpos}
-  |i=ID REFERENCE                              {make_tref (TPlaceholder i) $startpos}
+  |g=generic REFERENCE                           {make_tref g $startpos}
+
+generic:
+  |r = reference            {r}
+  |l = list                 {l}
+  |t = types                {t}
+  |tu = tuplet              {tu}
+  |f = function_t           {f}
+  |i = ID                   {TPlaceholder i}
 
 function_t:
-  |t1=types ARROW t2=types                      {make_tfun (t1, t2) $startpos}
-  |t=types ARROW tu=tuplet                      {make_tfun (t, tu) $startpos}
-  |t=types ARROW r=record                       {make_tfun (t, r) $startpos}
-  |t=types ARROW l=list                         {make_tfun (t, l) $startpos}
-  |t=types ARROW r=reference                    {make_tfun (t, r) $startpos}
-  |t=types ARROW f=function_t                   {make_tfun (t, f) $startpos}
-  |t=types ARROW i=ID                           {make_tfun (t, i) $startpos}
-
-  |t1=tuplet ARROW t2=types                     {make_tfun (t1, t2) $startpos}
-  |t=tuplet ARROW tu=tuplet                     {make_tfun (t, tu) $startpos}
-  |t=tuplet ARROW r=record                      {make_tfun (t, r) $startpos}
-  |t=tuplet ARROW l=list                        {make_tfun (t, l) $startpos}
-  |t=tuplet ARROW r=reference                   {make_tfun (t, r) $startpos}
-  |t=tuplet ARROW f=function_t                  {make_tfun (t, f) $startpos}
-  |t=tuplet ARROW i=ID                          {make_tfun (t, i) $startpos}
-
-  |r=record ARROW t2=types                      {make_tfun (r, t2) $startpos}
-  |r=record ARROW tu=tuplet                     {make_tfun (r, tu) $startpos}
-  |r1=record ARROW r2=record                    {make_tfun (r1, r2) $startpos}
-  |r=record ARROW l=list                        {make_tfun (r, l) $startpos}
-  |r=record ARROW r2=reference                  {make_tfun (r, r2) $startpos}
-  |r=record ARROW f=function_t                  {make_tfun (r, f) $startpos}
-  |r=record ARROW i=ID                          {make_tfun (r, i) $startpos}
-
-  |l=list ARROW t2=types                        {make_tfun (l, t2) $startpos}
-  |l=list ARROW tu=tuplet                       {make_tfun (l, tu) $startpos}
-  |l=list ARROW r=record                        {make_tfun (l, r) $startpos}
-  |l=list ARROW l2=list                         {make_tfun (l, l2) $startpos}
-  |l=list ARROW r=reference                     {make_tfun (l, r) $startpos}
-  |l=list ARROW f=function_t                    {make_tfun (l, f) $startpos}
-  |l=list ARROW i=ID                            {make_tfun (l, i) $startpos}
-
-  |r=reference ARROW t2=types                   {make_tfun (r, t2) $startpos}
-  |r=reference ARROW tu=tuplet                  {make_tfun (r, tu) $startpos}
-  |r=reference ARROW r2=record                  {make_tfun (r, r2) $startpos}
-  |r=reference ARROW l=list                     {make_tfun (r, l) $startpos}
-  |r=reference ARROW r2=reference               {make_tfun (r, r2) $startpos}
-  |r=reference ARROW f=function_t               {make_tfun (r, f) $startpos}
-  |r=reference ARROW i=ID                       {make_tfun (r, i) $startpos}
-
-  |f=function_t ARROW t2=types                   {make_tfun (f, t2) $startpos}
-  |f=function_t ARROW tu=tuplet                  {make_tfun (f, tu) $startpos}
-  |f=function_t ARROW r2=record                  {make_tfun (f, r2) $startpos}
-  |f=function_t ARROW l=list                     {make_tfun (f, l) $startpos}
-  |f=function_t ARROW r2=reference               {make_tfun (f, r2) $startpos}
-  |f=function_t ARROW f2=function_t              {make_tfun (f, f2) $startpos}
-  |f=function_t ARROW i=ID                       {make_tfun (f, i) $startpos}
-
-  |i=ID ARROW t2=types                         {make_tfun (i, t2) $startpos}
-  |i=ID ARROW tu=tuplet                        {make_tfun (i, tu) $startpos}
-  |i=ID ARROW r2=record                        {make_tfun (i, r2) $startpos}
-  |i=ID ARROW l=list                           {make_tfun (i, l) $startpos}
-  |i=ID ARROW r2=reference                     {make_tfun (i, r2) $startpos}
-  |i=ID ARROW f2=function_t                    {make_tfun (i, f2) $startpos}
-  |i=ID ARROW i2=ID                            {make_tfun (i, i2) $startpos}
+  |g1 = generic ARROW g2 = generic             {make_tfun (g1, g2)}
 
 alias:
   | TYPE i=ID EQ v=variant                     {make_alias i v $startpos}

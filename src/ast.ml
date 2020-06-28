@@ -79,6 +79,6 @@ and types =
   | TRecord of (string * types) list
   | TVar of string
   | TConstraint of types * types 
-  | TFun of types * types
+  | TFun of (types * types)
   (* and type_decl =  *)
 let wrap pos = {parsed_pos = pos; ptype = None}
