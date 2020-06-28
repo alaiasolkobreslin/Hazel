@@ -290,22 +290,17 @@ list:
 reference:
   |g=generic REFERENCE                           {make_tref g $startpos}
 
-generic:
+function_t:
+  |g1 = generic ARROW g2 = generic             {make_tfun (g1, g2)}
+
+alias:
+  | TYPE i=ID EQ v=variant                     {make_alias i v $startpos}
+  | TYPE i=ID EQ g=generic                     {make_alias i g $startpos}
+
+  generic:
   |r = reference            {r}
   |l = list                 {l}
   |t = types                {t}
   |tu = tuplet              {tu}
   |f = function_t           {f}
   |i = ID                   {TPlaceholder i}
-
-function_t:
-  |g1 = generic ARROW g2 = generic             {make_tfun (g1, g2)}
-
-alias:
-  | TYPE i=ID EQ v=variant                     {make_alias i v $startpos}
-  | TYPE i=ID EQ t=types                       {make_alias i t $startpos}
-  | TYPE i=ID EQ p=tuplet                      {make_alias i p $startpos}
-  | TYPE i=ID EQ l=list                        {make_alias i l $startpos}
-  | TYPE i=ID EQ r=record                      {make_alias i r $startpos}
-  | TYPE i=ID EQ r2=reference                  {make_alias i r2 $startpos}
-  | TYPE i=ID EQ f=function_t                  {make_alias i f $startpos}
