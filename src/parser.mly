@@ -195,14 +195,16 @@ token:
 expr:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }
   | LEFT_PAREN e=expr RIGHT_PAREN           { e }
+  | BEGIN e=expr END                        { e }
   | i=INT                                   { make_int (Int64.of_string i) $startpos }
   | TRUE                                    { make_bool true $startpos }
   | FALSE                                   { make_bool false $startpos }
   | s=STRING                                { make_string s $startpos }
   | c=CHAR                                  { make_char c $startpos }
   | i=ID                                    { make_var i $startpos }
-  | LEFT_PAREN t=tuple                      { make_tup t $startpos }
+  | e=expr COMMA t=tuple                    { make_tup (e::t) $startpos }  
   | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
+  | e1=expr e2=expr                         { make_app e1 e2 $startpos }
   | e1=expr b=bop e2=expr                   { make_binop b e1 e2 $startpos }
   | u=uop e=expr                            { make_unop u e $startpos }
   (* let goes here *)
@@ -242,8 +244,8 @@ uop:
 ;
 
 tuple:
-  | e=expr RIGHT_PAREN          { e::[] }
-  | e=expr COMMA t=tuple        { e::t }
+  | e=expr COMMA t=tuple                    { e::t }
+  | e=expr                                  { e::[] }
 ;
 
 pattern:

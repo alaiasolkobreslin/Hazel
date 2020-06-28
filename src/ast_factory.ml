@@ -25,6 +25,8 @@ let make_binop bop e1 e2 pos = (wrap pos, Binop (bop, e1, e2))
 
 let make_unop uop e pos = (wrap pos, Unaop (uop, e))
 
+let make_app e1 e2 pos = (wrap pos, App (e1, e2))
+
 (* TODO: finish exprs  *)
 
 let make_unit_pat pos = (wrap pos, PUnit)
