@@ -27,6 +27,10 @@ let make_unop uop e pos = (wrap pos, Unaop (uop, e))
 
 let make_app e1 e2 pos = (wrap pos, App (e1, e2))
 
+let make_open i pos = (wrap pos, i)
+
+let make_prog l1 l2 e pos = (wrap pos, l1, l2, e)
+
 (* TODO: finish exprs  *)
 
 let make_unit_pat pos = (wrap pos, PUnit)

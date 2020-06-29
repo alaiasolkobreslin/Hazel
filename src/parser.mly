@@ -52,6 +52,9 @@
 
 %start lexer
 %type <string option> lexer
+
+%start prog
+%type <Ast.parsed Ast.prog> prog
 %%
 
 lexer:
@@ -192,6 +195,13 @@ token:
     { get_return_value $startpos "()" }
 ;
 
+prog:
+  | l1=list(open_stmnt) l2=list(alias) e=expr EOF   { make_prog l1 l2 e $startpos }
+;
+
+open_stmnt:
+  | OPEN i=ID                               { make_open i $startpos }
+
 expr:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }
   | LEFT_PAREN e=expr RIGHT_PAREN           { e }
@@ -286,7 +296,7 @@ variant:
   | v=variant VERTBAR c=CONSTRUCTOR              {(c, None)::v}
   | v=variant END                                {make_tsum v $startpos}
 
-list:
+list_t:
   |g=generic TLIST                               {make_tlist gg $startpos}
 
 reference:
@@ -301,7 +311,7 @@ alias:
 
   generic:
   |r = reference            {r}
-  |l = list                 {l}
+  |l = list_t               {l}
   |t = types                {t}
   |tu = tuplet              {tu}
   |f = function_t           {f}

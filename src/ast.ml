@@ -2,6 +2,9 @@ type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
 and typed = { typed_pos : Lexing.position; ttype : types }
 
+and 'a prog = 'a * 'a open_stmnt list * types list * 'a expr
+
+and 'a open_stmnt = 'a * string
 
 and 'a expr = 
   | Unit 
