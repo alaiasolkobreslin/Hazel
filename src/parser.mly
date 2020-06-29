@@ -279,25 +279,29 @@ types:
   | i=TCHAR                     {make_tchar i $startpos}
   | i=TSTRING                   {make_tstring i $startpos}
 
-tuplet:
+pre_tuplet:
   | LEFT_PAREN g=generic                           {[g]}
-  | t=tuplet TIMES g=generic                       {g::t}
-  | t=tuplet RIGHT_PAREN                      {make_tprod t $startpos}
+  | t=pre_tuplet TIMES g=generic                   {g::t}
+
+tuplet:
+  | t=pre_tuplet RIGHT_PAREN                       {make_tprod t $startpos}
 
 record:
   |LEFT_BRACK i1=ID COLON g=generic           {[(i1, g)]}
   |r=record SEMICOLON i1=ID COLON g=generic   {(i1, g)::r}
-  |r=record RIGHT_BRACK                       {make_trecord r}
+  |r=record RIGHT_BRACK                       {make_trecord r $startpos }
+
+pre_variant:
+  | c=CONSTRUCTOR OF g=generic                        {[(c, Some g)]}
+  | c=CONSTRUCTOR                                     {[(c, None)]}
+  | v=pre_variant VERTBAR c=CONSTRUCTOR OF g=generic  {(c, Some g)::v}
+  | v=pre_variant VERTBAR c=CONSTRUCTOR               {(c, None)::v}
 
 variant:
-  | c=CONSTRUCTOR OF g=generic                   {[(c, Some g)]}
-  | c=CONSTRUCTOR                                {[(c, None)]}
-  | v=variant VERTBAR c=CONSTRUCTOR OF g=generic {(c, Some g)::v}
-  | v=variant VERTBAR c=CONSTRUCTOR              {(c, None)::v}
-  | v=variant END                                {make_tsum v $startpos}
+  | v=pre_variant END                                {make_tsum v $startpos}
 
 list_t:
-  |g=generic TLIST                               {make_tlist gg $startpos}
+  |g=generic TLIST                               {make_tlist g $startpos}
 
 reference:
   |g=generic REFERENCE                           {make_tref g $startpos}
@@ -309,10 +313,10 @@ alias:
   | TYPE i=ID EQ v=variant                     {make_alias i v $startpos}
   | TYPE i=ID EQ g=generic                     {make_alias i g $startpos}
 
-  generic:
+generic:
   |r = reference            {r}
   |l = list_t               {l}
   |t = types                {t}
   |tu = tuplet              {tu}
   |f = function_t           {f}
-  |i = ID                   {TPlaceholder i}
+  |i = ID                   { make_placeholder i $startpos }

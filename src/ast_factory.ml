@@ -77,3 +77,5 @@ let make_tref t pos = (wrap pos, TRef t)
 let make_tfun (p1,p2) pos = (wrap pos, TFun (p1, p2))
 
 let make_talias n t pos = (wrap pos, TAlias (n,t))
+
+let make_placeholder i pos = (wrap pos, TPlaceholder i)
