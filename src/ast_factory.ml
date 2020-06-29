@@ -54,28 +54,30 @@ let make_cons_pat p1 p2 pos = (wrap pos, PCons (p1, p2))
 let make_sum_pat s p pos = (wrap pos, PSum (s, p))
 
 
-let make_tunit u pos = (wrap pos, TUnit)
+(*let make_tunit u pos = TUnit
 
-let make_tbool b pos = (wrap pos, TBool)
+  let make_tbool b pos = TBool
 
-let make_tint i pos = (wrap pos, TInt)
+  let make_tint i pos = (wrap pos, TInt)
 
-let make_tchar c pos = (wrap pos, TChar)
+  let make_tchar c pos = (wrap pos, TChar)
 
-let make_tstring s pos = (wrap pos, TString)
+  let make_tstring s pos = (wrap pos, TString)
 
-let make_tsum lst pos = (wrap pos, TSum lst)
+  let make_tsum lst pos = (wrap pos, TSum lst)
 
-let make_tprod lst pos = (wrap pos, TProd (List.rev lst)) (*List is reversed because order matters for tuples *)
+  let make_tprod lst pos = (wrap pos, TProd (List.rev lst)) (*List is reversed because order matters for tuples *)
 
-let make_trecord lst pos = (wrap pos, TRecord lst)
+  let make_trecord lst pos = (wrap pos, TRecord lst)
 
-let make_tlist t pos = (wrap pos, TCons t)
+  let make_tlist t pos = (wrap pos, TCons t)
 
-let make_tref t pos = (wrap pos, TRef t)
+  let make_tref t pos = (wrap pos, TRef t)
 
-let make_tfun (p1,p2) pos = (wrap pos, TFun (p1, p2))
+  let make_tfun (p1,p2) pos = (wrap pos, TFun (p1, p2))
 
-let make_talias n t pos = (wrap pos, TAlias (n,t))
+  let make_talias n t pos = (wrap pos, TAlias (n,t))
 
-let make_placeholder i pos = (wrap pos, TPlaceholder i)
+  let make_placeholder i pos = (wrap pos, TPlaceholder i)*)
+
+let make_talias n t pos = (wrap pos, n, t)

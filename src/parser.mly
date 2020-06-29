@@ -319,4 +319,4 @@ generic:
   |t = types                {t}
   |tu = tuplet              {tu}
   |f = function_t           {f}
-  |i = ID                   { make_placeholder i $startpos }
+  |i = ID                   { TPlaceholder i }

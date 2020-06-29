@@ -73,7 +73,6 @@ and types =
   | TInt 
   | TString
   | TChar
-  | TAlias of string * types
   | TProd of types list (* tuples *)
   | TSum of (string * types option) list (* variants - first string removed so we can combine with alias *)
   | TCons of types
@@ -84,4 +83,6 @@ and types =
   | TConstraint of types * types 
   | TFun of (types * types)
   (* and type_decl =  *)
+and 'a alias = 'a * string * types
+
 let wrap pos = {parsed_pos = pos; ptype = None}
