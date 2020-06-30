@@ -23,7 +23,7 @@
 %token UNIT
 
 %token TRUE FALSE
-%token AND OR EQ NEQ PEQ PNEQ LT LEQ GT GEQ NOT
+%token AND OR EQ NEQ PEQ PNEQ LT LEQ GT GEQ NOT PIPE CAT
 
 %token LEFT_BRACE RIGHT_BRACE LEFT_BRACK RIGHT_BRACK LEFT_PAREN RIGHT_PAREN UNDERSCORE BEGIN END
 
@@ -49,6 +49,33 @@
 %token VERTBAR
 
 %token ANY
+
+/* Precedence and Associativity */
+
+
+%right ARROW
+
+%nonassoc IN ELSE
+
+%left SEMICOLON
+
+%nonassoc ASSIGN
+
+%nonassoc TO WITH RECV
+
+%right RETURN
+%left PIPE
+%right CONS
+%left OR
+%left AND
+%left EQ NE PEQ PNEQ
+%left LT LEQ GE GEQ
+%left PLUS MINUS
+%left TIMES HMUL DIVIDE MOD
+%left CAT
+
+%right NOT
+%right DEREFERENCE
 
 %start lexer
 %type <string option> lexer
@@ -137,6 +164,10 @@ token:
     { get_return_value $startpos ":" }
   | CONS
     { get_return_value $startpos "::" }
+  | PIPE
+    { get_return_value $startpos "|>" }
+  | CAT
+    { get_return_value $startpos "^"}
   | OPEN
     { get_return_value $startpos "open" }
   | LET
@@ -217,9 +248,6 @@ expr:
   | e1=expr e2=expr                         { make_app e1 e2 $startpos }
   | e1=expr b=bop e2=expr                   { make_binop b e1 e2 $startpos }
   | u=uop e=expr                            { make_unop u e $startpos }
-  (* let goes here *)
-  (* let rec goes here *)
-  (*etc. *)
   | c=CONSTRUCTOR t=types                   {make_variant c t $startpos}
   | CONSTRAINT i=ID EQ e=expr               {make_constraint i e $startpos}
 ;
@@ -295,7 +323,7 @@ pre_record:
   |LEFT_BRACK i1=ID COLON g=generic           {[(i1, g)]}
   |r=pre_record SEMICOLON i1=ID COLON g=generic   {(i1, g)::r}
   
- record: 
+record: 
   |r=pre_record RIGHT_BRACK                       {TRecord r}
 
 pre_variant:

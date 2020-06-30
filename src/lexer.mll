@@ -94,6 +94,8 @@ rule token = parse
 |"/"              {DIVIDE}
 |"mod"            {MOD}
 |">>*"            {HMUL}
+|"|>"             {PIPE}
+|"^"              {CAT}
 
 |"true"           {TRUE}
 |"false"          {FALSE}
