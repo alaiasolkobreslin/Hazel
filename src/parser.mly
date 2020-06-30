@@ -209,8 +209,8 @@ expr:
   | i=INT                                   { make_int (Int64.of_string i) $startpos }
   | TRUE                                    { make_bool true $startpos }
   | FALSE                                   { make_bool false $startpos }
-  | s=STRING                                { make_string s $startpos }
-  | c=CHAR                                  { make_char c $startpos }
+  | s=STRING                                { let (st, p) = s in make_string st p }
+  | c=CHAR                                  { let (ch, p) = c in make_char ch p }
   | i=ID                                    { make_var i $startpos }
   | e=expr COMMA t=tuple                    { make_tup (e::t) $startpos }  
   | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
@@ -220,7 +220,7 @@ expr:
   (* let goes here *)
   (* let rec goes here *)
   (*etc. *)
-  | c=CONSTRUCTOR e=expr                    {make_variant c e $startpos}
+  | c=CONSTRUCTOR t=types                   {make_variant c t $startpos}
   | CONSTRAINT i=ID EQ e=expr               {make_constraint i e $startpos}
 ;
 

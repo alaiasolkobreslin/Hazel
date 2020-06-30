@@ -1,31 +1,31 @@
 open Ast
 
 
-let make_unit pos = (wrap pos, Unit)
+let make_unit pos : parsed expr_ann = (wrap pos, Unit)
 
-let make_int i pos = (wrap pos, Int i)
+let make_int i pos : parsed expr_ann = (wrap pos, Int i)
 
-let make_bool b pos = (wrap pos, Bool b)
+let make_bool b pos : parsed expr_ann = (wrap pos, Bool b)
 
-let make_string s pos = (wrap pos, String s)
+let make_string s pos : parsed expr_ann = (wrap pos, String s)
 
-let make_char c pos = (wrap pos, Char c)
+let make_char c pos : parsed expr_ann = (wrap pos, Char c)
 
-let make_var v pos = (wrap pos, Var v)
+let make_var v pos : parsed expr_ann = (wrap pos, Var v)
 
-let make_tup lst pos = (wrap pos, lst)
+let make_tup lst pos : parsed expr_ann = (wrap pos, Tuple lst)
 
-let make_if_then e1 e2 e3 pos = (wrap pos, IfThen (e1, e2, e3))
+let make_if_then e1 e2 e3 pos : parsed expr_ann = (wrap pos, IfThen (e1, e2, e3))
 
-let make_variant str e pos = (wrap pos, Constructor (str, e))
+let make_variant str e pos : parsed expr_ann = (wrap pos, Constructor (str, e))
 
-let make_constraint str e pos = (wrap pos, Constraint (str, e))
+let make_constraint str e pos : parsed expr_ann = (wrap pos, Constraint (str, e))
 
-let make_binop bop e1 e2 pos = (wrap pos, Binop (bop, e1, e2))
+let make_binop bop e1 e2 pos : parsed expr_ann = (wrap pos, Binop (bop, e1, e2))
 
-let make_unop uop e pos = (wrap pos, Unaop (uop, e))
+let make_unop uop e pos : parsed expr_ann = (wrap pos, Unaop (uop, e))
 
-let make_app e1 e2 pos = (wrap pos, App (e1, e2))
+let make_app e1 e2 pos : parsed expr_ann = (wrap pos, App (e1, e2))
 
 let make_open i pos = (wrap pos, i)
 
