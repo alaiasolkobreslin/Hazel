@@ -221,7 +221,7 @@ expr:
   (* let rec goes here *)
   (*etc. *)
   | c=CONSTRUCTOR e=expr                    {make_variant c e $startpos}
-  | c=CONSTRAINT e=expr                     {make_constraint c e $startpos}
+  | CONSTRAINT i=ID EQ e=expr               {make_constraint i e $startpos}
 ;
 
 bop:
@@ -273,23 +273,25 @@ pattern:
   | p1=pattern CONS p2=pattern              { make_cons_pat p1 p2 $startpos }
 
 types:
-  | i=TUNIT                     {make_tunit i $startpos}
-  | i=TBOOL                     {make_tbool i $startpos}
-  | i=TINT                      {make_tint i $startpos}
-  | i=TCHAR                     {make_tchar i $startpos}
-  | i=TSTRING                   {make_tstring i $startpos}
+  | i=TUNIT                     {TUnit}
+  | i=TBOOL                     {TBool}
+  | i=TINT                      {TInt}
+  | i=TCHAR                     {TChar}
+  | i=TSTRING                   {TString}
 
 pre_tuplet:
   | LEFT_PAREN g=generic                           {[g]}
   | t=pre_tuplet TIMES g=generic                   {g::t}
 
 tuplet:
-  | t=pre_tuplet RIGHT_PAREN                       {make_tprod t $startpos}
+  | t=pre_tuplet RIGHT_PAREN                       {TProd (List.rev t)}
 
-record:
+pre_record:
   |LEFT_BRACK i1=ID COLON g=generic           {[(i1, g)]}
-  |r=record SEMICOLON i1=ID COLON g=generic   {(i1, g)::r}
-  |r=record RIGHT_BRACK                       {make_trecord r $startpos }
+  |r=pre_record SEMICOLON i1=ID COLON g=generic   {(i1, g)::r}
+  
+ record: 
+  |r=pre_record RIGHT_BRACK                       {TRecord r}
 
 pre_variant:
   | c=CONSTRUCTOR OF g=generic                        {[(c, Some g)]}
@@ -298,20 +300,20 @@ pre_variant:
   | v=pre_variant VERTBAR c=CONSTRUCTOR               {(c, None)::v}
 
 variant:
-  | v=pre_variant END                                {make_tsum v $startpos}
+  | v=pre_variant END                                {TSum v}
 
 list_t:
-  |g=generic TLIST                               {make_tlist g $startpos}
+  |g=generic TLIST                               {TCons g}
 
 reference:
-  |g=generic REFERENCE                           {make_tref g $startpos}
+  |g=generic REFERENCE                           {TRef g}
 
 function_t:
-  |g1 = generic ARROW g2 = generic             {make_tfun (g1, g2)}
+  |g1 = generic ARROW g2 = generic             {TFun (g1, g2)}
 
 alias:
-  | TYPE i=ID EQ v=variant                     {make_alias i v $startpos}
-  | TYPE i=ID EQ g=generic                     {make_alias i g $startpos}
+  | TYPE i=ID EQ v=variant                     {make_talias i v $startpos}
+  | TYPE i=ID EQ g=generic                     {make_talias i g $startpos}
 
 generic:
   |r = reference            {r}
