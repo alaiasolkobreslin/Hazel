@@ -63,7 +63,6 @@
 
 %nonassoc TO WITH RECV
 
-%right RETURN
 %left PIPE
 %right CONS
 %left OR
