@@ -29,7 +29,7 @@ let make_app e1 e2 pos : parsed expr_ann = (wrap pos, App (e1, e2))
 
 let make_open i pos = (wrap pos, i)
 
-let make_prog l1 l2 e pos = (wrap pos, l1, l2, e)
+let make_prog l1 (l2 : parsed alias list) e pos = (wrap pos, l1, l2, e)
 
 (* TODO: finish exprs  *)
 
@@ -80,4 +80,4 @@ let make_sum_pat s p pos = (wrap pos, PSum (s, p))
 
   let make_placeholder i pos = (wrap pos, TPlaceholder i)*)
 
-let make_talias n t pos = (wrap pos, n, t)
+let make_talias n t pos : parsed alias = (wrap pos, n, t)

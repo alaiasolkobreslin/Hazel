@@ -196,7 +196,7 @@ token:
 ;
 
 prog:
-  | l1=list(open_stmnt) l2=list(alias) e=expr EOF   { make_prog l1 l2 e $startpos }
+  | l1=list(open_stmnt); l2=list(alias); e=expr; EOF   { make_prog l1 l2 e $startpos }
 ;
 
 open_stmnt:
@@ -272,6 +272,11 @@ pattern:
   | LEFT_BRACK RIGHT_BRACK                  { make_nil_pat $startpos }
   | p1=pattern CONS p2=pattern              { make_cons_pat p1 p2 $startpos }
 
+alias:
+  | TYPE i=ID EQ v=variant                     {make_talias i v $startpos}
+  | TYPE i=ID EQ g=generic                     {make_talias i g $startpos}
+  | TYPE i=ID EQ r=record                      {make_talias i r $startpos}
+
 types:
   | i=TUNIT                     {TUnit}
   | i=TBOOL                     {TBool}
@@ -310,10 +315,6 @@ reference:
 
 function_t:
   |g1 = generic ARROW g2 = generic             {TFun (g1, g2)}
-
-alias:
-  | TYPE i=ID EQ v=variant                     {make_talias i v $startpos}
-  | TYPE i=ID EQ g=generic                     {make_talias i g $startpos}
 
 generic:
   |r = reference            {r}
