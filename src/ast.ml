@@ -64,6 +64,7 @@ and bop =
   | And
   | Or
   | Ass
+  | Cat
 
 and unop = Not | Neg | Ref | Deref
 
