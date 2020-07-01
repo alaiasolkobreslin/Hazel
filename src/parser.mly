@@ -65,14 +65,15 @@
 %right CONS
 %left OR
 %left AND
-%left EQ NE PEQ PNEQ
-%left LT LEQ GE GEQ
+%left EQ NEQ PEQ PNEQ
+%left LT LEQ GT GEQ
 %left PLUS MINUS
-%left TIMES HMUL DIVIDE MOD
+%left HMUL DIVIDE MOD TIMES
 %left CAT
 
 %right NOT
 %right DEREFERENCE
+%right REFERENCE
 
 %start lexer
 %type <string option> lexer
@@ -231,22 +232,12 @@ open_stmnt:
   | OPEN i=ID                               { make_open i $startpos }
 
 expr:
-  (*| LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }*)
-  (*| LEFT_PAREN e=expr RIGHT_PAREN           { e }*)
-  (*| BEGIN e=expr END                        { e }*)
-  (*| i=INT                                   { make_int (Int64.of_string i) $startpos }
-  | TRUE                                    { make_bool true $startpos }
-  | FALSE                                   { make_bool false $startpos }*)
-  (*| s=STRING                                { let (st, p) = s in make_string st p }
-  | c=CHAR                                  { let (ch, p) = c in make_char ch p }
-  | i=ID                                    { make_var i $startpos }
-  | t=tuple                                 { make_tup t $startpos }*)  
   | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
   | a=app                                   { a }
   | e1=expr b=bop e2=expr                   { make_binop b e1 e2 $startpos }
-  (*| u=uop e=expr                            { make_unop u e $startpos }
+  | u=uop e=expr                            { make_unop u e $startpos }
   | c=CONSTRUCTOR t=types                   {make_variant c t $startpos}
-  | CONSTRAINT i=ID EQ e=expr               {make_constraint i e $startpos}*)
+  | CONSTRAINT i=ID EQ e=expr               {make_constraint i e $startpos}
 ;
 
 value:
@@ -266,7 +257,7 @@ app:
   | a=app v=value                           { make_app a v $startpos }
   | v=value                                 { v }
 
-bop:
+%inline bop:
   | PLUS                                    { Plus }
   | MINUS                                   { Minus }
   | TIMES                                   { Mult }
@@ -286,10 +277,10 @@ bop:
   | AND                                     { And }
   | OR                                      { Or }
   | ASSIGNREF                               { Ass }
-  | CAT                                     { Cat }
+  | CAT                                     { Cat } 
 ;
 
-uop:
+%inline uop:
   | NOT                                     { Not }
   | MINUS                                   { Neg }
   | REFERENCE                               { Ref }
