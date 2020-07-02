@@ -16,10 +16,10 @@ and 'a expr =
   | Var of string 
   | Tuple of 'a expr_ann list
   | IfThen of ('a expr_ann * 'a expr_ann * 'a expr_ann)
-  | Let of ('a pattern * 'a expr_ann * 'a expr_ann)
-  | LetRec of (('a pattern list * 'a expr_ann) list * 'a expr_ann)
-  | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * 'a pattern) list) (*extra expr for when *)
-  | Fun of ('a pattern * 'a expr_ann)
+  | Let of ('a pattern_ann * 'a expr_ann * 'a expr_ann)
+  | LetRec of (('a pattern_ann list * 'a expr_ann) list * 'a expr_ann)
+  | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann * 'a pattern_ann) list) (*extra expr for when *)
+  | Fun of ('a pattern_ann list * 'a expr_ann)
   | App of ('a expr_ann * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
@@ -39,10 +39,10 @@ and 'a pattern =
   | PInt of Int64.t
   | PString of string
   | PVar of string
-  | PPair of 'a pattern * 'a pattern
-  | PSum of string * 'a pattern
+  | PPair of 'a pattern_ann * 'a pattern_ann
+  | PSum of string * 'a pattern_ann
   | PNil
-  | PCons of 'a pattern * 'a pattern
+  | PCons of 'a pattern_ann * 'a pattern_ann
 
 and 'a pattern_ann = 'a * 'a pattern
 
@@ -53,7 +53,7 @@ and bop =
   | Div
   | Mod
   | HMult
-  | Cons 
+  | ConsBop
   | Seq 
   | GT 
   | GEQ

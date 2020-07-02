@@ -236,8 +236,10 @@ expr:
   | a=app                                   { a }
   | e1=expr b=bop e2=expr                   { make_binop b e1 e2 $startpos }
   | u=uop e=expr                            { make_unop u e $startpos }
-  | c=CONSTRUCTOR t=types                   {make_variant c t $startpos}
-  | CONSTRAINT i=ID EQ e=expr               {make_constraint i e $startpos}
+  | c=CONSTRUCTOR t=types                   { make_variant c t $startpos } /* why is this types again?*/
+  | CONSTRAINT i=ID EQ e=expr               { make_constraint i e $startpos }
+  | FUN a=arg ARROW e=expr                  { make_fun a e $startpos }
+
 ;
 
 value:
@@ -258,6 +260,11 @@ app:
   | a=app v=value                           { make_app a v $startpos }
   | v=value                                 { v }
 
+arg:
+  | a=arg i=pattern       { make_args i a }
+  | i=pattern             { make_args i [] }
+
+
 %inline bop:
   | PLUS                                    { Plus }
   | MINUS                                   { Minus }
@@ -265,7 +272,7 @@ app:
   | DIVIDE                                  { Div }
   | MOD                                     { Mod }
   | HMUL                                    { HMult }
-  | CONS                                    { Cons }
+  | CONS                                    { ConsBop }
   | SEMICOLON                               { Seq }
   | GT                                      { GT }
   | LT                                      { LT }
@@ -301,7 +308,7 @@ pattern:
   | i=INT                                   { make_int_pat (Int64.of_string i) $startpos }
   | TRUE                                    { make_bool_pat true $startpos }
   | FALSE                                   { make_bool_pat false $startpos }
-  | s=STRING                                { make_string_pat s $startpos }
+  | s=STRING                                { make_string_pat s $startpos } /* This line specifically is throwing compilation errors*/
   | i=ID                                    { make_var_pat i $startpos }
   | p1=pattern COMMA p2=pattern             { make_pair_pat p1 p2 $startpos }
   | LEFT_PAREN p=pattern RIGHT_PAREN        { p }

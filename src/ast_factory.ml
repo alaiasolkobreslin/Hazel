@@ -31,6 +31,10 @@ let make_nil pos : parsed expr_ann = (wrap pos, Nil)
 
 let make_arr e1 e2 pos : parsed expr_ann = (wrap pos, Cons (e1, e2))
 
+let make_fun l e pos : parsed expr_ann = (wrap pos, Fun (l, e))
+
+let make_args x a  = (x :: a)
+
 let make_open i pos = (wrap pos, i)
 
 let make_prog l1 (l2 : parsed alias list) e pos = (wrap pos, l1, l2, e)
