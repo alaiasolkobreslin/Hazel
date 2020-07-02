@@ -35,6 +35,10 @@ let make_fun l e pos : parsed expr_ann = (wrap pos, Fun (l, e))
 
 let make_args x a  = (x :: a)
 
+let make_let_notf x e1 e2 pos : parsed expr_ann = (wrap pos, Let (x, e1, e2))
+
+let make_let_f x args e1 e2 pos : parsed expr_ann = (wrap pos, Let (x, (wrap pos, Fun (args, e1)), e2))
+
 let make_open i pos = (wrap pos, i)
 
 let make_prog l1 (l2 : parsed alias list) e pos = (wrap pos, l1, l2, e)

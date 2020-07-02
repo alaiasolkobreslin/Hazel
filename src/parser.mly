@@ -239,6 +239,8 @@ expr:
   | c=CONSTRUCTOR t=types                   { make_variant c t $startpos } /* why is this types again?*/
   | CONSTRAINT i=ID EQ e=expr               { make_constraint i e $startpos }
   | FUN a=arg ARROW e=expr                  { make_fun a e $startpos }
+  | LET p=pattern EQ e=expr IN e2=expr           { make_let_notf p e e2 $startpos }
+  | LET p=pattern a=arg EQ e=expr IN e2=expr     { make_let_f p a e e2 $startpos }
 
 ;
 
@@ -308,7 +310,7 @@ pattern:
   | i=INT                                   { make_int_pat (Int64.of_string i) $startpos }
   | TRUE                                    { make_bool_pat true $startpos }
   | FALSE                                   { make_bool_pat false $startpos }
-  | s=STRING                                { make_string_pat s $startpos } /* This line specifically is throwing compilation errors*/
+  /* | s=STRING                                { make_string_pat s $startpos } This line specifically is throwing compilation errors */
   | i=ID                                    { make_var_pat i $startpos }
   | p1=pattern COMMA p2=pattern             { make_pair_pat p1 p2 $startpos }
   | LEFT_PAREN p=pattern RIGHT_PAREN        { p }
