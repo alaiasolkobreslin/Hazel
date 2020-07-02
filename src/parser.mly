@@ -232,13 +232,13 @@ open_stmnt:
   | OPEN i=ID                               { make_open i $startpos }
 
 expr:
-  | IF e1=expr THEN e2=expr ELSE e3=expr    { make_if_then e1 e2 e3 $startpos }
-  | a=app                                   { a }
-  | e1=expr b=bop e2=expr                   { make_binop b e1 e2 $startpos }
-  | u=uop e=expr                            { make_unop u e $startpos }
-  | c=CONSTRUCTOR t=types                   { make_variant c t $startpos } /* why is this types again?*/
-  | CONSTRAINT i=ID EQ e=expr               { make_constraint i e $startpos }
-  | FUN a=arg ARROW e=expr                  { make_fun a e $startpos }
+  | IF e1=expr THEN e2=expr ELSE e3=expr         { make_if_then e1 e2 e3 $startpos }
+  | a=app                                        { a }
+  | e1=expr b=bop e2=expr                        { make_binop b e1 e2 $startpos }
+  | u=uop e=expr                                 { make_unop u e $startpos }
+  | c=CONSTRUCTOR t=types                        { make_variant c t $startpos } /* why is this types again?*/
+  | CONSTRAINT i=ID EQ e=expr                    { make_constraint i e $startpos }
+  | FUN a=arg ARROW e=expr                       { make_fun a e $startpos }
   | LET p=pattern EQ e=expr IN e2=expr           { make_let_notf p e e2 $startpos }
   | LET p=pattern a=arg EQ e=expr IN e2=expr     { make_let_f p a e e2 $startpos }
 
