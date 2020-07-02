@@ -27,6 +27,10 @@ let make_unop uop e pos : parsed expr_ann = (wrap pos, Unaop (uop, e))
 
 let make_app e1 e2 pos : parsed expr_ann = (wrap pos, App (e1, e2))
 
+let make_nil pos : parsed expr_ann = (wrap pos, Nil)
+
+let make_arr e1 e2 pos : parsed expr_ann = (wrap pos, Cons (e1, e2))
+
 let make_open i pos = (wrap pos, i)
 
 let make_prog l1 (l2 : parsed alias list) e pos = (wrap pos, l1, l2, e)

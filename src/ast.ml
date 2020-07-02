@@ -8,6 +8,7 @@ and 'a open_stmnt = 'a * string
 
 and 'a expr = 
   | Unit 
+  | Nil
   | Int of Int64.t
   | Bool of bool 
   | String of string
@@ -22,6 +23,7 @@ and 'a expr =
   | App of ('a expr_ann * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
+  | Cons of ('a expr_ann * 'a expr_ann)
   | Constraint of (string * 'a expr_ann)
   | Constructor of (string * types)
   | Record of (string * 'a expr_ann) list

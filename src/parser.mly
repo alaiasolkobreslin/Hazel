@@ -250,7 +250,8 @@ value:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }
   | LEFT_PAREN e=expr RIGHT_PAREN           { e }
   | t=tuple                                 { make_tup t $startpos }
-  (* TODO: add lists *)
+  | LEFT_BRACK RIGHT_BRACK                  { make_nil $startpos }
+  | LEFT_BRACK a = arr                      { a }
   | BEGIN e=expr END                        { e }
 
 app:
@@ -290,10 +291,9 @@ app:
 tuple:
   | LEFT_PAREN e1=expr l=list(COMMA; e2=expr { e2 }) RIGHT_PAREN   { e1::l }
 
-(*tuple:
-  | e=expr COMMA t=tuple                    { e::t }
-  | e=expr                                  { e::[] }
-;*)
+arr:
+  | e = expr SEMICOLON a = arr              { make_arr e a $startpos }
+  | e = expr option(SEMICOLON) RIGHT_BRACK  { make_arr (e) (make_nil $startpos) $startpos }
 
 pattern:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit_pat $startpos }
