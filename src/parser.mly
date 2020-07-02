@@ -293,7 +293,7 @@ tuple:
 
 arr:
   | e = expr SEMICOLON a = arr              { make_arr e a $startpos }
-  | e = expr option(SEMICOLON) RIGHT_BRACK  { make_arr (e) (make_nil $startpos) $startpos }
+  | e = expr RIGHT_BRACK                    { make_arr (e) (make_nil $startpos) $startpos }
 
 pattern:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit_pat $startpos }
