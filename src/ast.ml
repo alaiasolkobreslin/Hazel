@@ -27,7 +27,7 @@ and 'a expr =
   | Unaop of (unop * 'a expr_ann)
   | Cons of ('a expr_ann * 'a expr_ann)
   | Constraint of (string * 'a expr_ann)
-  | Constructor of (string * types)
+  | Constructor of (string * 'a expr_ann)
   | Record of (string * 'a expr_ann) list
 
 and 'a expr_ann = 'a * 'a expr

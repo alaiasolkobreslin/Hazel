@@ -236,7 +236,7 @@ expr:
   | a=app                                        { a }
   | e1=expr b=bop e2=expr                        { make_binop b e1 e2 $startpos }
   | u=uop e=expr                                 { make_unop u e $startpos }
-  | c=CONSTRUCTOR t=types                        { make_variant c t $startpos } /* why is this types again?*/
+  | c=CONSTRUCTOR e=value                        { make_variant c e $startpos }
   | CONSTRAINT i=ID EQ e=expr                    { make_constraint i e $startpos }
   | FUN a=arg ARROW e=expr                       { make_fun a e $startpos }
   | LET p=pattern EQ e=expr IN e2=expr           { make_let_notf p e e2 $startpos }
@@ -317,11 +317,11 @@ pattern:
   | i=INT                                   { make_int_pat (Int64.of_string i) $startpos }
   | TRUE                                    { make_bool_pat true $startpos }
   | FALSE                                   { make_bool_pat false $startpos }
-  /* | s=STRING                                { make_string_pat s $startpos } This line specifically is throwing compilation errors */
+  | s=STRING                                { let (str, pos) = s in make_string_pat str pos }
   | i=ID                                    { make_var_pat i $startpos }
   | p1=pattern COMMA p2=pattern             { make_pair_pat p1 p2 $startpos }
   | LEFT_PAREN p=pattern RIGHT_PAREN        { p }
-  | i=ID p=pattern                          { make_sum_pat i p $startpos }
+  | i=CONSTRUCTOR p=pattern                 { make_sum_pat i p $startpos }
   | LEFT_BRACK RIGHT_BRACK                  { make_nil_pat $startpos }
   | p1=pattern CONS p2=pattern              { make_cons_pat p1 p2 $startpos }
 
