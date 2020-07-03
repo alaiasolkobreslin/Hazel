@@ -35,9 +35,34 @@ let make_fun l e pos : parsed expr_ann = (wrap pos, Fun (l, e))
 
 let make_args x a  = (x :: a)
 
-let make_let_notf x e1 e2 pos : parsed expr_ann = (wrap pos, Let (x, e1, e2))
+let make_let_notf x e1 e2 pos : parsed expr_ann = 
+  (wrap pos, Let (x, e1, e2))
 
-let make_let_f x args e1 e2 pos : parsed expr_ann = (wrap pos, Let (x, (wrap pos, Fun (args, e1)), e2))
+let make_let_f x args e1 e2 pos : parsed expr_ann = 
+  (wrap pos, Let (x, (wrap pos, Fun (args, e1)), e2))
+
+let make_letrec_notf i e pos : parsed expr_ann = 
+  (wrap pos, LetRec ([(i, e)], e))
+
+let make_letrec_f i args e pos : parsed expr_ann = 
+  (wrap pos, LetRec ([(i, (make_fun args e pos))], e))
+
+let make_and_notf pre i e pos : parsed expr_ann = 
+  match pre with
+  |(loc, LetRec (lst, tail)) -> (loc, LetRec ((i, e)::lst, e))
+  |_ -> failwith "owo what's this?"
+
+let make_and_f pre i args e pos : parsed expr_ann = 
+  begin 
+    match pre with
+    |(loc, LetRec (lst, tail)) -> (loc, LetRec ((i, (make_fun args e pos))::lst, e))
+    |_ -> failwith "owo how'd you get here?"
+  end
+
+let complete_m_rec pre e : parsed expr_ann = 
+  match pre with
+  | (loc, LetRec (lst, tail)) -> (loc, LetRec (lst, e))
+  | _ -> failwith "This shouldn't have happened"
 
 let make_open i pos = (wrap pos, i)
 

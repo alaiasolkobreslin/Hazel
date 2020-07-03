@@ -241,7 +241,7 @@ expr:
   | FUN a=arg ARROW e=expr                       { make_fun a e $startpos }
   | LET p=pattern EQ e=expr IN e2=expr           { make_let_notf p e e2 $startpos }
   | LET p=pattern a=arg EQ e=expr IN e2=expr     { make_let_f p a e e2 $startpos }
-
+  | m=mutualrec                                  { m }
 ;
 
 value:
@@ -266,6 +266,12 @@ arg:
   | a=arg i=pattern       { make_args i a }
   | i=pattern             { make_args i [] }
 
+mutualrec:
+  |LET REC p=pattern EQ e=expr                { make_letrec_notf p e $startpos }
+  |LET REC p=pattern a=arg EQ e=expr          { make_letrec_f p a e $startpos }
+  |m=mutualrec AND p=pattern EQ e=expr        { make_and_notf m p e $startpos }
+  |m=mutualrec AND p=pattern a=arg EQ e=expr  { make_and_f m p a e $startpos}
+  |m=mutualrec IN e=expr                      { complete_m_rec m e }
 
 %inline bop:
   | PLUS                                    { Plus }
