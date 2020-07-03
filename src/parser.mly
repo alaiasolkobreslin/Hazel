@@ -294,6 +294,7 @@ mutualrec:
   | OR                                      { Or }
   | ASSIGNREF                               { Ass }
   | CAT                                     { Cat } 
+  | PIPE                                    { Pipe }
 ;
 
 %inline uop:

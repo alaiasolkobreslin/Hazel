@@ -67,6 +67,7 @@ and bop =
   | Or
   | Ass
   | Cat
+  | Pipe
 
 and unop = Not | Neg | Ref | Deref
 
