@@ -1,3 +1,5 @@
+open Sexpr
+
 type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
 and typed = { typed_pos : Lexing.position; ttype : types }
@@ -90,5 +92,52 @@ and types =
 and 'a alias = 'a * string * types
 
 let wrap pos = {parsed_pos = pos; ptype = None}
+
+let bop_to_sexpr bop = 
+  let str = match bop with
+    | Plus -> "+"
+    | Minus -> "-"
+    | Mult -> "*"
+    | Div -> "/"
+    | Mod -> "mod"
+    | HMult -> ">>*"
+    | ConsBop -> "::"
+    | Seq -> ";"
+    | GT -> ">"
+    | GEQ -> ">="
+    | LT -> "<"
+    | LEQ -> "<="
+    | EQ -> "="
+    | NEQ -> "<>"
+    | PEQ -> "=="
+    | PNEQ -> "!="
+    | And -> "&&"
+    | Or -> "||"
+    | Ass -> ":="
+    | Cat -> "^"
+    | Pipe -> "|>" in
+  SNode str
+
+let uop_to_sexpr uop =
+  let str = match uop with
+    | Not -> "not"
+    | Neg -> "-"
+    | Ref -> "ref"
+    | Deref -> "!" in
+  SNode str
+
+let rec expr_to_sexpr = function
+  | Unit -> SNode ("()")
+  | Nil -> SNode ("[]")
+  | Int i -> SNode (Int64.to_string i)
+  | String s -> SNode ("\"" ^ (Util.escape_string s) ^ "\"")
+  | Char c -> SNode ("'" ^ (Util.escape_string c) ^ "'")
+  | Var id -> SNode id
+  | Tuple lst -> SList (List.map (fun elt -> elt |> snd |> expr_to_sexpr) lst)
+  | IfThen (e1, e2, e3) -> 
+    SList [SNode "if"; e1 |> snd |> expr_to_sexpr;
+           SNode "then"; e2 |> snd |> expr_to_sexpr;
+           SNode "else"; e3 |> snd |> expr_to_sexpr]
+  | _ -> failwith "unimplemented"
 
 let prog_to_sexpr prog = failwith "unimplemented"
