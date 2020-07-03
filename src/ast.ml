@@ -90,3 +90,5 @@ and types =
 and 'a alias = 'a * string * types
 
 let wrap pos = {parsed_pos = pos; ptype = None}
+
+let prog_to_sexpr prog = failwith "unimplemented"
