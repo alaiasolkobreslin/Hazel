@@ -242,6 +242,7 @@ expr:
   | LET p=pattern EQ e=expr IN e2=expr           { make_let_notf p e e2 $startpos }
   | LET p=pattern a=arg EQ e=expr IN e2=expr     { make_let_f p a e e2 $startpos }
   | m=mutualrec                                  { m }
+  | p=pmatch                                     { p }
 ;
 
 value:
@@ -274,9 +275,9 @@ mutualrec:
   |m=mutualrec IN e=expr                      { complete_m_rec m e }
 
 pmatch:
-  |MATCH expr WITH                                          { make_init_pmatch e $startpos }
+  |MATCH e=expr WITH                                          { make_init_pmatch e $startpos }
   |pm=pmatch VERTBAR pt=pattern ARROW e=expr                { make_update_pmatch pm pt e None $startpos }
-  |pm=pmatch VERTBAR pt=pattern WHEN e1=expr ARROW e2=expr  { make_update_pmatch pm pt e (Some e2) $startpos }
+  |pm=pmatch VERTBAR pt=pattern WHEN e1=expr ARROW e2=expr  { make_update_pmatch pm pt e1 (Some e2) $startpos }
 
 %inline bop:
   | PLUS                                    { Plus }
