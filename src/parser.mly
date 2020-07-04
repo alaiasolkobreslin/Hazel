@@ -273,6 +273,11 @@ mutualrec:
   |m=mutualrec AND p=pattern a=arg EQ e=expr  { make_and_f m p a e $startpos}
   |m=mutualrec IN e=expr                      { complete_m_rec m e }
 
+pmatch:
+  |MATCH expr WITH                                          { make_init_pmatch e $startpos }
+  |pm=pmatch VERTBAR pt=pattern ARROW e=expr                { make_update_pmatch pm pt e None $startpos }
+  |pm=pmatch VERTBAR pt=pattern WHEN e1=expr ARROW e2=expr  { make_update_pmatch pm pt e (Some e2) $startpos }
+
 %inline bop:
   | PLUS                                    { Plus }
   | MINUS                                   { Minus }
