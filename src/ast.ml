@@ -145,14 +145,16 @@ let rec expr_to_sexpr = function
     SList [SNode "let"; p |> snd |> pat_to_sexpr;
            SNode "="; e1 |> snd |> expr_to_sexpr;
            SNode "in"; e2 |> snd |> expr_to_sexpr]
-  | LetRec (lst, e) -> 
+  | LetRec (lst, expr) -> 
     begin
       match lst with
       | (p, e)::[] ->  SList [SNode "let rec"; pat_to_sexpr (snd p); 
-                              expr_to_sexpr (snd e)]
+                              expr_to_sexpr (snd e);
+                              SNode "in"; expr_to_sexpr (snd expr)]
       | (p, e)::t -> SList [SNode "let rec"; pat_to_sexpr (snd p); 
                             expr_to_sexpr (snd e);
-                            SList (rec_and_to_sexpr t)]
+                            SList (rec_and_to_sexpr t);
+                            SNode "in"; expr_to_sexpr (snd expr)]
       | [] -> failwith "rec and parse precondition violated"
     end
   | MatchWithWhen (e, lst) -> failwith ""
