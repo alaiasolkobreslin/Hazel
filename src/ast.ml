@@ -89,6 +89,8 @@ and types =
   | TConstraint of types * types 
   | TFun of (types * types)
   (* and type_decl =  *)
+
+(* TODO: why is this 'a alias? *)
 and 'a alias = 'a * string * types
 
 let wrap pos = {parsed_pos = pos; ptype = None}
@@ -170,6 +172,16 @@ let rec expr_to_sexpr = function
     SList (List.map (fun (str, e) -> 
         SList [SNode str; e |> snd |> expr_to_sexpr]) lst)
 
-and pat_to_sexpr pat = failwith "unimplemented"
+and pat_to_sexpr = function
+  | PUnit -> SNode "()"
+  | PWild -> SNode "_"
+  | PBool b -> SNode (string_of_bool b)
+  | PInt i -> SNode (Int64.to_string i)
+  | PString s
+  | PVar s -> SNode s
+  (* TODO: PPair doesn't make sense... *)
+  | _ -> failwith "unimplemented"
 
-let prog_to_sexpr prog = failwith "unimplemented"
+let prog_to_sexpr prog = 
+  match prog with
+  | (_, l1, l2, e) -> failwith "unimplemented"
