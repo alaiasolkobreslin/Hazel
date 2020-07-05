@@ -130,6 +130,7 @@ let rec expr_to_sexpr = function
   | Unit -> SNode ("()")
   | Nil -> SNode ("[]")
   | Int i -> SNode (Int64.to_string i)
+  | Bool b -> SNode (string_of_bool b)
   | String s -> SNode ("\"" ^ (Util.escape_string s) ^ "\"")
   | Char c -> SNode ("'" ^ (Util.escape_string c) ^ "'")
   | Var id -> SNode id
@@ -138,6 +139,37 @@ let rec expr_to_sexpr = function
     SList [SNode "if"; e1 |> snd |> expr_to_sexpr;
            SNode "then"; e2 |> snd |> expr_to_sexpr;
            SNode "else"; e3 |> snd |> expr_to_sexpr]
-  | _ -> failwith "unimplemented"
+  | Let (p, e1, e2) -> 
+    SList [SNode "let"; p |> snd |> pat_to_sexpr;
+           SNode "="; e1 |> snd |> expr_to_sexpr;
+           SNode "in"; e2 |> snd |> expr_to_sexpr]
+  | LetRec (lst, e) -> failwith ""
+  | MatchWithWhen (e, lst) -> failwith ""
+  | Fun (lst, e) ->
+    SList [SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst);
+           e |> snd |> expr_to_sexpr]
+  | App (e1, e2) ->
+    SList [e1 |> snd |> expr_to_sexpr;
+           e2 |> snd |> expr_to_sexpr]
+  | Binop (bop, e1, e2) ->
+    SList [bop_to_sexpr bop;
+           e1 |> snd |> expr_to_sexpr;
+           e2 |> snd |> expr_to_sexpr]
+  | Unaop (uop, e) ->
+    SList [uop_to_sexpr uop;
+           e |> snd |> expr_to_sexpr]
+  | Cons (e1, e2) ->
+    SList [SNode "::";
+           e1 |> snd |> expr_to_sexpr;
+           e2 |> snd |> expr_to_sexpr]
+  | Constraint (str, e)
+  | Constructor (str, e) ->
+    SList [SNode str;
+           e |> snd |> expr_to_sexpr]
+  | Record lst -> 
+    SList (List.map (fun (str, e) -> 
+        SList [SNode str; e |> snd |> expr_to_sexpr]) lst)
+
+and pat_to_sexpr pat = failwith "unimplemented"
 
 let prog_to_sexpr prog = failwith "unimplemented"
