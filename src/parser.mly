@@ -255,6 +255,7 @@ value:
   | LEFT_PAREN RIGHT_PAREN                  { make_unit $startpos }
   | LEFT_PAREN e=expr RIGHT_PAREN           { e }
   | t=tuple                                 { make_tup t $startpos }
+  | r=vrecord                               { r }
   | LEFT_BRACK RIGHT_BRACK                  { make_nil $startpos }
   | LEFT_BRACK a = arr                      { a }
   | BEGIN e=expr END                        { e }
@@ -275,9 +276,14 @@ mutualrec:
   |m=mutualrec IN e=expr                      { complete_m_rec m e }
 
 pmatch:
-  |MATCH e=expr WITH                                          { make_init_pmatch e $startpos }
+  |MATCH e=expr WITH                                        { make_init_pmatch e $startpos }
   |pm=pmatch VERTBAR pt=pattern ARROW e=expr                { make_update_pmatch pm pt e None $startpos }
   |pm=pmatch VERTBAR pt=pattern WHEN e1=expr ARROW e2=expr  { make_update_pmatch pm pt e1 (Some e2) $startpos }
+
+vrecord:
+  |LEFT_BRACE i=ID EQ e=expr            { make_init_record i e $startpos }
+  |v=vrecord SEMICOLON i=ID EQ e=expr   { make_update_record v i e $startpos }
+  |v=vrecord RIGHT_BRACE                { v }
 
 %inline bop:
   | PLUS                                    { Plus }

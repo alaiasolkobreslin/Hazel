@@ -71,6 +71,13 @@ let make_update_pmatch pre pt e1 e2 pos : parsed expr_ann =
   |(loc, MatchWithWhen (m, lst)) -> (loc, MatchWithWhen (m, (e1, e2, pt)::lst))
   |_ -> failwith "How?"
 
+let make_init_record i e pos : parsed expr_ann = (wrap pos, Record [(i, e)])
+
+let make_update_record pre i e pos : parsed expr_ann = 
+  match pre with
+  | (loc, Record l) -> (loc, Record ((i,e)::l))
+  | _ -> failwith "nani?"
+
 let make_open i pos = (wrap pos, i)
 
 let make_prog l1 (l2 : parsed alias list) e pos = (wrap pos, l1, l2, e)
