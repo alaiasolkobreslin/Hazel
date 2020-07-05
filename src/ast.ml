@@ -145,10 +145,20 @@ let rec expr_to_sexpr = function
     SList [SNode "let"; p |> snd |> pat_to_sexpr;
            SNode "="; e1 |> snd |> expr_to_sexpr;
            SNode "in"; e2 |> snd |> expr_to_sexpr]
-  | LetRec (lst, e) -> failwith ""
+  | LetRec (lst, e) -> 
+    begin
+      match lst with
+      | (p, e)::[] ->  SList [SNode "let rec"; pat_to_sexpr (snd p); 
+                              expr_to_sexpr (snd e)]
+      | (p, e)::t -> SList [SNode "let rec"; pat_to_sexpr (snd p); 
+                            expr_to_sexpr (snd e);
+                            SList (rec_and_to_sexpr t)]
+      | [] -> failwith "rec and parse precondition violated"
+    end
   | MatchWithWhen (e, lst) -> failwith ""
   | Fun (lst, e) ->
-    SList [SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst);
+    SList [SNode "lambda"; 
+           SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst);
            e |> snd |> expr_to_sexpr]
   | App (e1, e2) ->
     SList [e1 |> snd |> expr_to_sexpr;
@@ -171,6 +181,12 @@ let rec expr_to_sexpr = function
   | Record lst -> 
     SList (List.map (fun (str, e) -> 
         SList [SNode str; e |> snd |> expr_to_sexpr]) lst)
+
+and rec_and_to_sexpr = function
+  | [] -> []
+  | (p, e)::t -> 
+    ([SNode "and"; pat_to_sexpr (snd p); expr_to_sexpr (snd e)] @
+     (rec_and_to_sexpr t))
 
 and pat_to_sexpr = function
   | PUnit -> SNode "()"
