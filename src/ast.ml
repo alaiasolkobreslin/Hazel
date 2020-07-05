@@ -206,9 +206,9 @@ and types_to_sexpr = function
   | TConstraint (t1, t2) -> failwith ""
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
 
-let prog_to_sexpr prog = 
+let prog_to_sexpr (prog:'a prog) = 
   match prog with
-  | (l1, l2, e) ->
+  | (_, l1, l2, e) ->
     SList [SList (List.map open_to_sexpr l1);
            SList (List.map alias_to_sexpr l2);
-           expr_to_sexpr e]
+           expr_to_sexpr (snd e)]
