@@ -182,6 +182,33 @@ and pat_to_sexpr = function
   (* TODO: PPair doesn't make sense... *)
   | _ -> failwith "unimplemented"
 
+and open_to_sexpr = function
+  | (_, str) ->
+    SList [SNode "open"; SNode str]
+
+and alias_to_sexpr = function
+  | (_, str, typ) -> 
+    SList [SNode str; types_to_sexpr typ]
+
+and types_to_sexpr = function
+  | TPlaceholder str -> SNode str
+  | TBool -> SNode "bool"
+  | TInt -> SNode "int"
+  | TString -> SNode "string"
+  | TChar -> SNode "char"
+  | TProd lst -> SList (List.map types_to_sexpr lst)
+  | TSum lst -> failwith ""
+  | TCons typ -> SList [types_to_sexpr typ; SNode "list"]
+  | TUnit -> SNode "unit"
+  | TRef typ -> SList [types_to_sexpr typ; SNode "ref"]
+  | TRecord lst -> failwith ""
+  | TVar str -> SNode str
+  | TConstraint (t1, t2) -> failwith ""
+  | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
+
 let prog_to_sexpr prog = 
   match prog with
-  | (_, l1, l2, e) -> failwith "unimplemented"
+  | (l1, l2, e) ->
+    SList [SList (List.map open_to_sexpr l1);
+           SList (List.map alias_to_sexpr l2);
+           expr_to_sexpr e]
