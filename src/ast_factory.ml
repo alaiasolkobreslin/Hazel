@@ -96,7 +96,7 @@ let make_string_pat s pos = (wrap pos, PString s)
 
 let make_var_pat v pos = (wrap pos, PVar v)
 
-let make_pair_pat p1 p2 pos = (wrap pos, PPair (p1, p2))
+let make_tup_pat lst pos = (wrap pos, PTup lst)
 
 let make_nil_pat pos = (wrap pos, PNil)
 

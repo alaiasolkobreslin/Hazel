@@ -41,7 +41,7 @@ and 'a pattern =
   | PInt of Int64.t
   | PString of string
   | PVar of string
-  | PPair of 'a pattern_ann * 'a pattern_ann
+  | PTup of 'a pattern_ann list
   | PSum of string * 'a pattern_ann
   | PNil
   | PCons of 'a pattern_ann * 'a pattern_ann

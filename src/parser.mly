@@ -331,11 +331,14 @@ pattern:
   | FALSE                                   { make_bool_pat false $startpos }
   | s=STRING                                { let (str, pos) = s in make_string_pat str pos }
   | i=ID                                    { make_var_pat i $startpos }
-  | p1=pattern COMMA p2=pattern             { make_pair_pat p1 p2 $startpos }
+  | t=tuple_pat                             { make_tup_pat t $startpos }
   | LEFT_PAREN p=pattern RIGHT_PAREN        { p }
   | i=CONSTRUCTOR p=pattern                 { make_sum_pat i p $startpos }
   | LEFT_BRACK RIGHT_BRACK                  { make_nil_pat $startpos }
   | p1=pattern CONS p2=pattern              { make_cons_pat p1 p2 $startpos }
+
+tuple_pat:
+  | LEFT_PAREN p1=pattern l=list(COMMA; p2=pattern { p2 }) RIGHT_PAREN   { p1::l }
 
 alias:
   | TYPE i=ID EQ v=variant                     {make_talias i v $startpos}
