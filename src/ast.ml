@@ -210,8 +210,13 @@ and pat_to_sexpr = function
   | PInt i -> SNode (Int64.to_string i)
   | PString s
   | PVar s -> SNode s
-  (* TODO: PPair doesn't make sense... *)
-  | _ -> failwith "unimplemented"
+  | PTup lst ->  SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst)
+  | PSum (str, p) -> 
+    SList [SNode str; p |> snd |> pat_to_sexpr]
+  | PNil -> SNode "[]"
+  | PCons (p1, p2) -> 
+    SList [p1 |> snd |> pat_to_sexpr; SNode "::";
+           p2 |> snd |> pat_to_sexpr]
 
 and open_to_sexpr = function
   | (_, str) ->
