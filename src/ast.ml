@@ -226,6 +226,16 @@ and alias_to_sexpr = function
   | (_, str, typ) -> 
     SList [SNode str; types_to_sexpr typ]
 
+and variant_helper acc (n,t) = 
+  match t with
+  |None     -> acc@((SNode "|")::[(SNode n)])
+  |Some typ -> 
+    begin 
+      match types_to_sexpr typ with 
+      |SNode s    -> acc@((SNode "|")::(SNode n)::(SNode "of")::[(SNode s)])
+      |SList lst  -> acc@((SNode "|")::(SNode n)::(SNode "of")::lst)
+    end
+
 and types_to_sexpr = function
   | TPlaceholder str -> SNode str
   | TBool -> SNode "bool"
@@ -233,7 +243,7 @@ and types_to_sexpr = function
   | TString -> SNode "string"
   | TChar -> SNode "char"
   | TProd lst -> SList (List.map types_to_sexpr lst)
-  | TSum lst -> failwith ""
+  | TSum lst -> SList ((List.fold_left variant_helper [] lst)@([SNode "end"]))
   | TCons typ -> SList [types_to_sexpr typ; SNode "list"]
   | TUnit -> SNode "unit"
   | TRef typ -> SList [types_to_sexpr typ; SNode "ref"]
