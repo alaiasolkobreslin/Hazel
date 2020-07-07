@@ -225,7 +225,7 @@ token:
 ;
 
 prog:
-  | l1=list(open_stmnt); l2=list(alias); e=expr; EOF   { make_prog l1 l2 e $startpos }
+  | l1=list(open_stmnt); l2=list(alias); e=option(expr); EOF   { make_prog l1 l2 e $startpos }
 ;
 
 open_stmnt:

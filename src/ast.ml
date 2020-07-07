@@ -4,7 +4,7 @@ type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
 and typed = { typed_pos : Lexing.position; ttype : types }
 
-and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a expr_ann
+and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a expr_ann option
 
 and 'a open_stmnt = 'a * string
 
@@ -249,12 +249,19 @@ and types_to_sexpr = function
   | TRef typ -> SList [types_to_sexpr typ; SNode "ref"]
   | TRecord lst -> failwith ""
   | TVar str -> SNode str
-  | TConstraint (t1, t2) -> failwith ""
+  | TConstraint (t1, t2) -> 
+    SList [SNode "constraint"; types_to_sexpr t1; types_to_sexpr t2]
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
 
 let prog_to_sexpr (prog:'a prog) = 
   match prog with
   | (_, l1, l2, e) ->
-    SList [SList (List.map open_to_sexpr l1);
-           SList (List.map alias_to_sexpr l2);
-           expr_to_sexpr (snd e)]
+    begin
+      match e with
+      | None -> SList [SList (List.map open_to_sexpr l1);
+                       SList (List.map alias_to_sexpr l2);]
+      | Some e' ->
+        SList [SList (List.map open_to_sexpr l1);
+               SList (List.map alias_to_sexpr l2);
+               expr_to_sexpr (snd e')]
+    end
