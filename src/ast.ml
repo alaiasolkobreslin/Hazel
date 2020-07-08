@@ -224,7 +224,7 @@ and open_to_sexpr = function
 
 and alias_to_sexpr = function
   | (_, str, typ) -> 
-    SList [SNode str; types_to_sexpr typ]
+    SList [SNode "type"; SNode str; SNode "="; types_to_sexpr typ]
 
 and variant_helper acc (n,t) = 
   match t with
@@ -235,6 +235,13 @@ and variant_helper acc (n,t) =
       |SNode s    -> acc@((SNode "|")::(SNode n)::(SNode "of")::[(SNode s)])
       |SList lst  -> acc@((SNode "|")::(SNode n)::(SNode "of")::lst)
     end
+
+and record_helper acc (n,t) = 
+  begin 
+    match types_to_sexpr t with 
+    |SNode s    -> acc@((SNode ";")::(SNode n)::(SNode ":")::[(SNode s)])
+    |SList lst  -> acc@((SNode ";")::(SNode n)::(SNode ":")::lst)
+  end
 
 and types_to_sexpr = function
   | TPlaceholder str -> SNode str
@@ -247,9 +254,16 @@ and types_to_sexpr = function
   | TCons typ -> SList [types_to_sexpr typ; SNode "list"]
   | TUnit -> SNode "unit"
   | TRef typ -> SList [types_to_sexpr typ; SNode "ref"]
-  | TRecord lst -> failwith ""
+  | TRecord lst -> 
+    (* SList ((List.fold_left record_helper [] lst)@([SNode "}"])) *)
+    let pre_node = List.fold_left record_helper [] lst in 
+    begin
+      match pre_node with
+      |h::t -> SList (SNode "{"::t@([SNode "}"]))
+      |_ -> SList (pre_node@([SNode "}"]))
+    end
   | TVar str -> SNode str
-  | TConstraint (t1, t2) -> 
+  | TConstraint (t1, t2) ->
     SList [SNode "constraint"; types_to_sexpr t1; types_to_sexpr t2]
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
 

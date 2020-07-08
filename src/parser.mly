@@ -360,11 +360,11 @@ tuplet:
   | t=pre_tuplet RIGHT_PAREN                       {TProd (List.rev t)}
 
 pre_record:
-  |LEFT_BRACK i1=ID COLON g=generic           {[(i1, g)]}
+  |LEFT_BRACE i1=ID COLON g=generic               {[(i1, g)]}
   |r=pre_record SEMICOLON i1=ID COLON g=generic   {(i1, g)::r}
   
 record: 
-  |r=pre_record RIGHT_BRACK                       {TRecord r}
+  |r=pre_record RIGHT_BRACE                       {TRecord (List.rev r)}
 
 pre_variant:
   | c=CONSTRUCTOR OF g=generic                        {[(c, Some g)]}
@@ -373,7 +373,7 @@ pre_variant:
   | v=pre_variant VERTBAR c=CONSTRUCTOR               {(c, None)::v}
 
 variant:
-  | v=pre_variant END                                {TSum v}
+  | v=pre_variant END                                {TSum (List.rev v)}
 
 list_t:
   |g=generic TLIST                               {TCons g}
