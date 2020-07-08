@@ -271,8 +271,8 @@ arg:
 mutualrec:
   |LET REC p=pattern EQ e=expr                { make_letrec_notf p e $startpos }
   |LET REC p=pattern a=arg EQ e=expr          { make_letrec_f p a e $startpos }
-  |m=mutualrec AND p=pattern EQ e=expr        { make_and_notf m p e $startpos }
-  |m=mutualrec AND p=pattern a=arg EQ e=expr  { make_and_f m p a e $startpos}
+  |m=mutualrec MUTUAL_REC p=pattern EQ e=expr        { make_and_notf m p e $startpos }
+  |m=mutualrec MUTUAL_REC p=pattern a=arg EQ e=expr  { make_and_f m p a e $startpos}
   |m=mutualrec IN e=expr                      { complete_m_rec m e }
 
 pmatch:

@@ -255,7 +255,6 @@ and types_to_sexpr = function
   | TUnit -> SNode "unit"
   | TRef typ -> SList [types_to_sexpr typ; SNode "ref"]
   | TRecord lst -> 
-    (* SList ((List.fold_left record_helper [] lst)@([SNode "}"])) *)
     let pre_node = List.fold_left record_helper [] lst in 
     begin
       match pre_node with
