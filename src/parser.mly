@@ -159,7 +159,7 @@ token:
   | COMMA
     { get_return_value $startpos "," }
   | SEMICOLON
-    { get_return_value $startpos ":" }
+    { get_return_value $startpos ";" }
   | CONS
     { get_return_value $startpos "::" }
   | PIPE
