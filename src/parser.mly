@@ -20,8 +20,6 @@
 
 %token TBOOL TINT TSTRING TCHAR TUNIT TLIST
 
-%token UNIT
-
 %token TRUE FALSE
 %token AND OR EQ NEQ PEQ PNEQ LT LEQ GT GEQ NOT PIPE CAT
 
@@ -220,8 +218,6 @@ token:
     { get_return_value $startpos "list" }
   | TUNIT
     { get_return_value $startpos "unit" }
-  | UNIT
-    { get_return_value $startpos "()" }
 ;
 
 prog:

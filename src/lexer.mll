@@ -86,8 +86,6 @@ rule token = parse
 |"unit"           {TUNIT}
 |"list"           {TLIST}
 
-|"()"             {UNIT}
-
 |"*"              {TIMES}
 |"+"              {PLUS}
 |"-"              {MINUS}
