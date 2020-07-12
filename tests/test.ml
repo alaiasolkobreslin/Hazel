@@ -26,3 +26,9 @@ let make_lex_file_test
       | Some file -> assert_equal file 
                        expected_file ~cmp:compare_files
       | None -> assert_equal true false)
+
+let lexer_tests = [
+  make_lex_file_test "functions.haze" "pa1/functions.haze" "pa1/functions.lexedsol"
+]
+
+let _ = List.flatten [lexer_tests]
