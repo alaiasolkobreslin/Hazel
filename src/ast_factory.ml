@@ -61,7 +61,7 @@ let make_and_f pre i args e pos : parsed expr_ann =
 
 let complete_m_rec pre e : parsed expr_ann = 
   match pre with
-  | (loc, LetRec (lst, tail)) -> (loc, LetRec (lst, e))
+  | (loc, LetRec (lst, tail)) -> (loc, LetRec (List.rev lst, e))
   | _ -> failwith "This shouldn't have happened"
 
 let make_init_pmatch e pos : parsed expr_ann = (wrap pos, MatchWithWhen (e, []))
