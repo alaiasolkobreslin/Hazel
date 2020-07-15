@@ -190,11 +190,25 @@ let rec expr_to_sexpr = function
 and match_with_when_to_sexpr = function
   | [] -> []
   | (e1, Some e2, p)::t ->
-    [SNode "with"; pat_to_sexpr (snd p); 
-     SNode "when"; expr_to_sexpr (snd e2)] @
+    [SNode "with"; SNode "|"; pat_to_sexpr (snd p);
+     SNode "when"; expr_to_sexpr (snd e2);
+     SNode "->"; e1 |> snd |> expr_to_sexpr] @
+    (match_with_when_to_sexpr_help t)
+  | (e, None, p)::t -> 
+    [SNode "with"; SNode "|"; pat_to_sexpr (snd p);
+     SNode "->"; e |> snd |> expr_to_sexpr] @
+    (match_with_when_to_sexpr_help t)
+
+and match_with_when_to_sexpr_help = function
+  | [] -> []
+  | (e1, Some e2, p)::t ->
+    [SNode "|"; pat_to_sexpr (snd p);
+     SNode "when"; expr_to_sexpr (snd e2);
+     SNode "->"; e1 |> snd |> expr_to_sexpr] @
     (match_with_when_to_sexpr t)
   | (e, None, p)::t -> 
-    [SNode "with"; pat_to_sexpr (snd p)] @
+    [SNode "|"; pat_to_sexpr (snd p);
+     SNode "->"; e |> snd |> expr_to_sexpr] @
     (match_with_when_to_sexpr t)
 
 and rec_and_to_sexpr = function

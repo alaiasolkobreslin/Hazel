@@ -68,7 +68,7 @@ let make_init_pmatch e pos : parsed expr_ann = (wrap pos, MatchWithWhen (e, []))
 
 let make_update_pmatch pre pt e1 e2 pos : parsed expr_ann = 
   match pre with
-  |(loc, MatchWithWhen (m, lst)) -> (loc, MatchWithWhen (m, (e1, e2, pt)::lst))
+  |(loc, MatchWithWhen (m, lst)) -> (loc, MatchWithWhen (m, lst @ [(e1, e2, pt)]))
   |_ -> failwith "How?"
 
 let make_init_record i e pos : parsed expr_ann = (wrap pos, Record [(i, e)])
