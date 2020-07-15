@@ -21,6 +21,7 @@ let make_lex_file_test
     (input_file : string)
     (expected_file : string) : test = 
   name >:: (fun _ ->
+      print_endline "uwu";
       write_out_file lex_channel "" input_file ".lexed";
       match chop_file input_file ".lexed" with
       | Some file -> assert_equal file 
@@ -28,7 +29,10 @@ let make_lex_file_test
       | None -> assert_equal true false)
 
 let lexer_tests = [
-  make_lex_file_test "functions.haze" "pa1/functions.haze" "pa1/functions.lexedsol"
+  make_lex_file_test "functions.haze" "tests/pa1/functions.haze"
+    "tests/pa1/functions.lexedsol";
 ]
 
-let _ = List.flatten [lexer_tests]
+let suite = "test suite for Hazel" >::: List.flatten [lexer_tests]
+
+let _ = run_test_tt_main suite

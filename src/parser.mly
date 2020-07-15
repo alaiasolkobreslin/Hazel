@@ -342,11 +342,11 @@ alias:
   | TYPE i=ID EQ r=record                      {make_talias i r $startpos}
 
 types:
-  | i=TUNIT                     {TUnit}
-  | i=TBOOL                     {TBool}
-  | i=TINT                      {TInt}
-  | i=TCHAR                     {TChar}
-  | i=TSTRING                   {TString}
+  | TUNIT                     {TUnit}
+  | TBOOL                     {TBool}
+  | TINT                      {TInt}
+  | TCHAR                     {TChar}
+  | TSTRING                   {TString}
 
 pre_tuplet:
   | LEFT_PAREN g=generic                           {[g]}

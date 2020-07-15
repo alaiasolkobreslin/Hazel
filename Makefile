@@ -14,7 +14,7 @@ $(MAIN_OUT): $(SRC)
 	$(OCAMLBUILD) -cflag -g -lflag -g $(MAIN_OUT) -I $(SRC)
 
 $(TEST_OUT): $(SRC) $(TESTS)
-	$(OCAMLBUILD) -cflag -g -lflag -g $(TEST_OUT) -I $(SRC) -I $(TESTS)
+	$(OCAMLBUILD) -tag 'debug' -cflag -g -lflag -g $(TEST_OUT) -I $(SRC) -I $(TESTS)
 
 clean:
 	ocamlbuild -clean
