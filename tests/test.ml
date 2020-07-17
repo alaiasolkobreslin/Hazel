@@ -40,6 +40,8 @@ let lexer_tests = [
     "tests/pa1/unicode.lexedsol";
   make_lex_file_test "variants.haze" "tests/pa1/variants.haze"
     "tests/pa1/variants.lexedsol";
+  make_lex_file_test "evenVar.haze" "tests/pa1/evenVar.haze"
+    "tests/pa1/evenVar.lexedsol";
 ]
 
 let suite = "test suite for Hazel" >::: List.flatten [lexer_tests]
