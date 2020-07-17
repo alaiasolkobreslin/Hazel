@@ -88,6 +88,7 @@ and types =
   | TVar of string
   | TConstraint of types * types 
   | TFun of (types * types)
+  | Subst of types ref
   (* and type_decl =  *)
 
 (* TODO: why is this 'a alias? *)
@@ -279,6 +280,7 @@ and types_to_sexpr = function
   | TConstraint (t1, t2) ->
     SList [SNode "constraint"; types_to_sexpr t1; types_to_sexpr t2]
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
+  | _ -> failwith "unimplemented"
 
 let prog_to_sexpr (prog:'a prog) = 
   match prog with
