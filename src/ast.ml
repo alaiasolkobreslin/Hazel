@@ -1,8 +1,9 @@
 open Sexpr
-
 type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
-and typed = { typed_pos : Lexing.position; ttype : types }
+and typed = { typed_pos : Lexing.position; 
+              ttype : types; 
+              env : (string * types) list}
 
 and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a expr_ann option
 
@@ -91,7 +92,7 @@ and types =
   | Subst of types ref
   (* and type_decl =  *)
 
-(* TODO: why is this 'a alias? *)
+(* TODO: why is this 'a alias? So we can get the location of the declaration and take the later one*)
 and 'a alias = 'a * string * types
 
 let wrap pos = {parsed_pos = pos; ptype = None}
