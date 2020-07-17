@@ -21,7 +21,6 @@ let make_lex_file_test
     (input_file : string)
     (expected_file : string) : test = 
   name >:: (fun _ ->
-      print_endline "uwu";
       write_out_file lex_channel "" input_file ".lexed";
       match chop_file input_file ".lexed" with
       | Some file -> assert_equal file 
@@ -31,6 +30,16 @@ let make_lex_file_test
 let lexer_tests = [
   make_lex_file_test "functions.haze" "tests/pa1/functions.haze"
     "tests/pa1/functions.lexedsol";
+  make_lex_file_test "longTuples.haze" "tests/pa1/longTuples.haze"
+    "tests/pa1/longTuples.lexedsol";
+  make_lex_file_test "mutualrec.haze" "tests/pa1/mutualrec.haze"
+    "tests/pa1/mutualrec.lexedsol";
+  make_lex_file_test "polymorphism.haze" "tests/pa1/polymorphism.haze"
+    "tests/pa1/polymorphism.lexedsol";
+  make_lex_file_test "unicode.haze" "tests/pa1/unicode.haze"
+    "tests/pa1/unicode.lexedsol";
+  make_lex_file_test "variants.haze" "tests/pa1/variants.haze"
+    "tests/pa1/variants.lexedsol";
 ]
 
 let suite = "test suite for Hazel" >::: List.flatten [lexer_tests]
