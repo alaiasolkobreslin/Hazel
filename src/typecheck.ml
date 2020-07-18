@@ -57,9 +57,31 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
     let e2_typed = typecheck_expr e2 constr updated_environ in
     ({typed_pos = parsed.parsed_pos; ttype = (fst e2_typed).ttype}, Let (pat, e1, e2))
   |(parsed, LetRec _) -> failwith "finish later"
-  |
-    |_ -> failwith "typecheck error"
+  |(parsed, MatchWithWhen (init, lst)) -> 
+    let init_typed = typecheck_expr init constr environ in
+    let typed_cases = p_match_helper (fst init_typed).ttype lst constr environ in
+    begin
+      match typed_cases with
+      |(e, o, p)::t -> ({typed_pos = parsed.parsed_pos; ttype = (fst e).ttyped}, MatchWithWhen (init_typed, typed_cases))
+      |_ -> failwith "typecheck error"
+    end
+  |_ -> failwith "typecheck error"
 
+and p_match_helper typ lst acc constr env = 
+  match lst, acc with
+  |(exp, None, pat)::t, []-> 
+    let new_environ = update_environ pat typ constr env in
+    let typed_exp = typecheck_expr exp constr new_environ in
+    p_match_helper typ t [(typed_exp, None, pat)] constr env
+  |(exp, Some b, pat)::t, (e, o, p)::t2 -> 
+    let new_environ = update_environ pat typ constr env in
+    let typed_exp = typecheck_expr exp constr new_environ in
+    let typed_b = typecheck_expr b constr new_environ in
+    if ((fst e).ttype = (fst typed_exp).ttype) && ((fst typed_b).ttype = TBool) 
+    then p_match_helper typ t ((typed_exp, Some b, pat)::acc) constr env
+    else failwith "typecheck error"
+  |([], _) -> List.rev acc
+  |_ -> failwith "typecheck error"
 
 (*could neaten this up by just passing in the type instead of the expression *)
 and update_environ pat expr_typ constr environ = 
