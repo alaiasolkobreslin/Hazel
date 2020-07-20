@@ -110,28 +110,28 @@ and update_environ pat expr_typ constr environ =
     |PCons (h::t), TCons typ -> (update_environ h typ constr environ)@(update_environ t (TCons typ) constr environ)
     |_ -> failwith "unimplemented"
   end
-  
-       (* | Plus -> "+"
-    | Minus -> "-"
-    | Mult -> "*"
-    | Div -> "/"
-    | Mod -> "mod"
-    | HMult -> ">>*"
-    | ConsBop -> "::"
-    | Seq -> ";"
-    | GT -> ">"
-    | GEQ -> ">="
-    | LT -> "<"
-    | LEQ -> "<="
-    | EQ -> "="
-    | NEQ -> "<>"
-    | PEQ -> "=="
-    | PNEQ -> "!="
-    | And -> "&&"
-    | Or -> "||"
-    | Ass -> ":="
-    | Cat -> "^"
-    | Pipe -> "|>" *)
+
+(* | Plus -> "+"
+   | Minus -> "-"
+   | Mult -> "*"
+   | Div -> "/"
+   | Mod -> "mod"
+   | HMult -> ">>*"
+   | ConsBop -> "::"
+   | Seq -> ";"
+   | GT -> ">"
+   | GEQ -> ">="
+   | LT -> "<"
+   | LEQ -> "<="
+   | EQ -> "="
+   | NEQ -> "<>"
+   | PEQ -> "=="
+   | PNEQ -> "!="
+   | And -> "&&"
+   | Or -> "||"
+   | Ass -> ":="
+   | Cat -> "^"
+   | Pipe -> "|>" *)
 
 
 (* | Nil

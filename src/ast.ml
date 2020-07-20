@@ -3,9 +3,11 @@ type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
 and typed = { typed_pos : Lexing.position; ttype : types}
 
-and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a expr_ann option
+and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a let_defn list
 
 and 'a open_stmnt = 'a * string
+
+and 'a let_defn = 'a * 'a pattern_ann * 'a expr_ann
 
 and 'a expr = 
   | Unit 
@@ -281,15 +283,14 @@ and types_to_sexpr = function
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
   | _ -> failwith "unimplemented"
 
+let let_defn_to_sexpr = function
+  | (_, pat, e) ->     
+    SList [SNode "let"; pat |> snd |> pat_to_sexpr;
+           SNode "="; e |> snd |> expr_to_sexpr]
+
 let prog_to_sexpr (prog:'a prog) = 
   match prog with
   | (_, l1, l2, e) ->
-    begin
-      match e with
-      | None -> SList [SList (List.map open_to_sexpr l1);
-                       SList (List.map alias_to_sexpr l2);]
-      | Some e' ->
-        SList [SList (List.map open_to_sexpr l1);
-               SList (List.map alias_to_sexpr l2);
-               expr_to_sexpr (snd e')]
-    end
+    SList ([SList (List.map open_to_sexpr l1);
+            SList (List.map alias_to_sexpr l2);] @
+           (List.map let_defn_to_sexpr e))

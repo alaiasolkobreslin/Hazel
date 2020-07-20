@@ -221,11 +221,14 @@ token:
 ;
 
 prog:
-  | l1=list(open_stmnt); l2=list(alias); e=option(expr); EOF   { make_prog l1 l2 e $startpos }
+  | l1=list(open_stmnt); l2=list(alias); e=list(let_defn); EOF   { make_prog l1 l2 e $startpos }
 ;
 
 open_stmnt:
-  | OPEN i=ID                               { make_open i $startpos }
+  | OPEN i=ID                                    { make_open i $startpos }
+
+let_defn:
+  | LET p=pattern EQ e=expr option(IN)           { make_let_defn p e $startpos }
 
 expr:
   | IF e1=expr THEN e2=expr ELSE e3=expr         { make_if_then e1 e2 e3 $startpos }
