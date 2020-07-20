@@ -65,6 +65,16 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
       |(e, o, p)::t -> ({typed_pos = parsed.parsed_pos; ttype = (fst e).ttyped}, MatchWithWhen (init_typed, typed_cases))
       |_ -> failwith "typecheck error"
     end
+  |(parsed, Fun (pat, e)) -> failwith "need unification"
+  |(parsed, App (f, e)) -> 
+    let f_typed = typecheck_expr f constr environ in
+    let e_typed = typecheck_expr f constr environ in
+    begin
+      match (fst ftyped).ttype, (fst e_typed).ttype with
+      |TFun (arg_t, e_t), t when arg_t = t -> 
+        ({typed_pos = parsed.parsed_pos; ttype = e_t}, App (f_typed, e_typed))
+      |_ -> failwith "argument type does not match function"
+    end
   |_ -> failwith "typecheck error"
 
 and p_match_helper typ lst acc constr env = 
@@ -100,18 +110,29 @@ and update_environ pat expr_typ constr environ =
     |PCons (h::t), TCons typ -> (update_environ h typ constr environ)@(update_environ t (TCons typ) constr environ)
     |_ -> failwith "unimplemented"
   end
+  
+       (* | Plus -> "+"
+    | Minus -> "-"
+    | Mult -> "*"
+    | Div -> "/"
+    | Mod -> "mod"
+    | HMult -> ">>*"
+    | ConsBop -> "::"
+    | Seq -> ";"
+    | GT -> ">"
+    | GEQ -> ">="
+    | LT -> "<"
+    | LEQ -> "<="
+    | EQ -> "="
+    | NEQ -> "<>"
+    | PEQ -> "=="
+    | PNEQ -> "!="
+    | And -> "&&"
+    | Or -> "||"
+    | Ass -> ":="
+    | Cat -> "^"
+    | Pipe -> "|>" *)
 
-(* and 'a pattern = 
-   | PUnit
-   | PWild
-   | PBool of bool
-   | PInt of Int64.t
-   | PString of string
-   | PVar of string
-   | PTup of 'a pattern_ann list
-   | PSum of string * 'a pattern_ann
-   | PNil
-   | PCons of 'a pattern_ann * 'a pattern_ann *)
 
 (* | Nil
    | Int of Int64.t
