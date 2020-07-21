@@ -1,6 +1,7 @@
 open Ast
 type constructor = string
 type constructors = (constructor * (types option * string)) list 
+type env = (string * types) list
 
 let rec interleave_list acc x y = 
   match x,y with
@@ -52,17 +53,26 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
     then ({typed_pos = parsed.parsed_pos; ttype = (fst e1_typ).ttype}, IfThen(b_typ, e1_typ, e2_typ)) 
     else failwith "typecheck error"
   |(parsed, Let (pat, e1, e2)) -> 
-    let e1_typed = typecheck_expr e1 constr environ in
-    let updated_environ = (update_environ pat e1_typed constr environ)@environ in
-    let e2_typed = typecheck_expr e2 constr updated_environ in
-    ({typed_pos = parsed.parsed_pos; ttype = (fst e2_typed).ttype}, Let (pat, e1, e2))
+    failwith "patterns are stupid"
+  (* let new_pat = 
+     begin
+      match pat with
+      |(prsd, pt) -> ({typed_pos = prsd.parsed_pos; ttype = TPlaceholder "why do we have this for patterns"}, pt)
+      |_ -> failwith "unreachable branch"
+     end
+     in
+     let e1_typed = typecheck_expr e1 constr environ in
+     let updated_environ = (update_environ pat e1_typed constr environ)@environ in
+     let e2_typed = typecheck_expr e2 constr updated_environ in
+     ({typed_pos = parsed.parsed_pos; ttype = (fst e2_typed).ttype}, Let (new_pat, e1, e2)) *)
   |(parsed, LetRec _) -> failwith "finish later"
   |(parsed, MatchWithWhen (init, lst)) -> 
     let init_typed = typecheck_expr init constr environ in
-    let typed_cases = p_match_helper (fst init_typed).ttype lst constr environ in
+    let typed_cases = p_match_helper (fst init_typed).ttype lst [] constr environ in
     begin
       match typed_cases with
-      |(e, o, p)::t -> ({typed_pos = parsed.parsed_pos; ttype = (fst e).ttyped}, MatchWithWhen (init_typed, typed_cases))
+      |(e, o, p)::t -> 
+        ({typed_pos = parsed.parsed_pos; ttype = (fst e).ttype}, MatchWithWhen (init_typed, typed_cases))
       |_ -> failwith "typecheck error"
     end
   |(parsed, Fun (pat, e)) -> failwith "need unification"
@@ -70,11 +80,12 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
     let f_typed = typecheck_expr f constr environ in
     let e_typed = typecheck_expr f constr environ in
     begin
-      match (fst ftyped).ttype, (fst e_typed).ttype with
+      match (fst f_typed).ttype, (fst e_typed).ttype with
       |TFun (arg_t, e_t), t when arg_t = t -> 
         ({typed_pos = parsed.parsed_pos; ttype = e_t}, App (f_typed, e_typed))
       |_ -> failwith "argument type does not match function"
     end
+  |(parsed, Binop (b, e1, e2)) -> typecheck_bop (parsed, Binop (b, e1, e2)) constr environ
   |_ -> failwith "typecheck error"
 
 and p_match_helper typ lst acc constr env = 
@@ -110,29 +121,79 @@ and update_environ pat expr_typ constr environ =
     |PCons (h::t), TCons typ -> (update_environ h typ constr environ)@(update_environ t (TCons typ) constr environ)
     |_ -> failwith "unimplemented"
   end
-  
-       (* | Plus -> "+"
-    | Minus -> "-"
-    | Mult -> "*"
-    | Div -> "/"
-    | Mod -> "mod"
-    | HMult -> ">>*"
-    | ConsBop -> "::"
-    | Seq -> ";"
-    | GT -> ">"
-    | GEQ -> ">="
-    | LT -> "<"
-    | LEQ -> "<="
-    | EQ -> "="
-    | NEQ -> "<>"
-    | PEQ -> "=="
-    | PNEQ -> "!="
-    | And -> "&&"
-    | Or -> "||"
-    | Ass -> ":="
-    | Cat -> "^"
-    | Pipe -> "|>" *)
 
+and typecheck_bop (exp) (constr) (environ) = 
+  let parsed = fst exp in
+  let bop, e1, e2 = 
+    begin
+      match exp with
+      |Binop (op, e, e') -> (op, (typecheck_expr e constr environ), (typecheck_expr e' constr environ))
+      |_ -> failwith "Typecheck error"
+    end
+  in
+  match bop with
+  |Plus |Minus |Mult |Div |Mod |HMult ->
+    if (fst e1).ttype = TInt && (fst e2).ttype = TInt
+    then ({typed_pos = parsed.parsed_pos; ttype = TInt}, Binop (bop, e1, e2))
+    else failwith "typecheck error"
+  |GT |GEQ |LT |LEQ -> 
+    if (fst e1).ttype = TInt && (fst e2).ttype = TInt
+    then ({typed_pos = parsed.parsed_pos; ttype = TBool}, Binop (bop, e1, e2))
+    else failwith "typecheck error"
+  |ConsBop -> 
+    begin
+      match (fst e1).ttype, (fst e2).ttype with
+      |a, TCons a -> ({typed_pos = parsed.parsed_pos; ttype = TCons a}, Binop (bop, e1, e2))
+      |_ -> failwith "Inconsistant types in list"
+    end
+  |Seq -> 
+    if (fst e1).ttype = TUnit
+    then ({typed_pos = parsed.parsed_pos; ttype = (fst e2).ttype}, Binop (bop, e1, e2))
+    else failwith "typecheck error"
+  |EQ |NEQ -> 
+    if (fst e1).ttype = (fst e2).ttype
+    then ({typed_pos = parsed.parsed_pos; ttype = (fst e1).ttype}, Binop (bop, e1, e2))
+    else failwith "typecheck error"
+  |PEQ |PNEQ -> 
+    begin
+      match (fst e1).ttype, (fst e2).ttype with
+      |TRef a, TRef b when a = b -> 
+        ({typed_pos = parsed.parsed_pos; ttype = TBool}, Binop (bop, e1, e2))
+      |_ -> failwith "typecheck error"
+    end
+  |And |Or -> 
+    if (fst e1).ttype = TBool && (fst e2).ttype = TBool
+    then ({typed_pos = parsed.parsed_pos; ttype = TBool}, Binop (bop, e1, e2))
+    else failwith "typecheck error"
+  |Ass -> 
+    (* This is a mess. I'll clean it up later *)
+    begin
+      match snd e1 with
+      |Var x -> 
+        begin 
+          match List.assoc x environ with
+          |Some (TRef a) when (fst e2).ttype = a -> 
+            ({typed_pos = parsed.parsed_pos; ttype = TUnit}, Binop (bop, e1, e2))
+          |_ -> failwith "typecheck error"
+        end
+      |_ -> failwith "typecheck error"
+    end
+  |Cat -> 
+    if (fst e1).ttype = TString && (fst e2).ttype = TString
+    then ({typed_pos = parsed.parsed_pos; ttype = TString}, Binop (bop, e1, e2))
+    else failwith "typecheck error"
+  |Pipe -> 
+    begin
+      match (fst e1).ttype, (fst e2).ttype with
+      |t, TFun (arg_t, e_t) when arg_t = t -> 
+        ({typed_pos = parsed.parsed_pos; ttype = e_t}, App (f_typed, e_typed))
+      |_ -> failwith "argument type does not match function"
+    end
+  |_ -> failwith "Inaccessible Branch"
+
+(* and parsed_to_typed_pat pat = 
+   match pat with
+   |(psd, PUnit) -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "why do we have this for patterns"}, PUnit) *)
 
 (* | Nil
    | Int of Int64.t
