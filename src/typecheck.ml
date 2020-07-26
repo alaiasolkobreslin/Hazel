@@ -53,18 +53,11 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
     then ({typed_pos = parsed.parsed_pos; ttype = (fst e1_typ).ttype}, IfThen(b_typ, e1_typ, e2_typ)) 
     else failwith "typecheck error"
   |(parsed, Let (pat, e1, e2)) -> 
-    failwith "patterns are stupid"
-  (* let new_pat = 
-     begin
-      match pat with
-      |(prsd, pt) -> ({typed_pos = prsd.parsed_pos; ttype = TPlaceholder "why do we have this for patterns"}, pt)
-      |_ -> failwith "unreachable branch"
-     end
-     in
-     let e1_typed = typecheck_expr e1 constr environ in
-     let updated_environ = (update_environ pat e1_typed constr environ)@environ in
-     let e2_typed = typecheck_expr e2 constr updated_environ in
-     ({typed_pos = parsed.parsed_pos; ttype = (fst e2_typed).ttype}, Let (new_pat, e1, e2)) *)
+    let new_pat = parsed_to_typed_pat pat in
+    let e1_typed = typecheck_expr e1 constr environ in
+    let updated_environ = (update_environ pat (fst e1_typed).ttype constr environ)@environ in
+    let e2_typed = typecheck_expr e2 constr updated_environ in
+    ({typed_pos = parsed.parsed_pos; ttype = (fst e2_typed).ttype}, Let (new_pat, e1_typed, e2_typed))
   |(parsed, LetRec _) -> failwith "finish later"
   |(parsed, MatchWithWhen (init, lst)) -> 
     let init_typed = typecheck_expr init constr environ in
@@ -91,34 +84,36 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
 and p_match_helper typ lst acc constr env = 
   match lst, acc with
   |(exp, None, pat)::t, []-> 
+    let new_pat = parsed_to_typed_pat pat in
     let new_environ = update_environ pat typ constr env in
     let typed_exp = typecheck_expr exp constr new_environ in
-    p_match_helper typ t [(typed_exp, None, pat)] constr env
+    p_match_helper typ t [(typed_exp, None, new_pat)] constr env
   |(exp, Some b, pat)::t, (e, o, p)::t2 -> 
+    let new_pat = parsed_to_typed_pat pat in
     let new_environ = update_environ pat typ constr env in
     let typed_exp = typecheck_expr exp constr new_environ in
     let typed_b = typecheck_expr b constr new_environ in
     if ((fst e).ttype = (fst typed_exp).ttype) && ((fst typed_b).ttype = TBool) 
-    then p_match_helper typ t ((typed_exp, Some b, pat)::acc) constr env
+    then p_match_helper typ t ((typed_exp, Some typed_b, new_pat)::acc) constr env
     else failwith "typecheck error"
   |([], _) -> List.rev acc
   |_ -> failwith "typecheck error"
 
 (*could neaten this up by just passing in the type instead of the expression *)
-and update_environ pat expr_typ constr environ = 
+and update_environ pat (expr_typ : Ast.types) constr environ = 
   begin
-    match (snd pat), expr_typ with
-    |PUnit,TUnit-> []
-    |PBool b,TBool -> []
-    |PInt i,TInt -> []
-    |PString s,TString -> []
-    |PVar x,t -> [(x, t)]
+    match ((snd pat), expr_typ) with
+    |PUnit, TUnit-> []
+    |PBool b, TBool -> []
+    |PInt i, TInt -> []
+    |PString s, TString -> []
+    |PVar x, t -> [(x, t)]
     |PTup l1, TProd l2 -> 
-      let interleaved = interleave_list l1 l2 in
-      List.map (fun (x,y) -> update_environ x y constr environ) |> List.flatten
+      let interleaved = interleave_list [] l1 l2 in
+      List.map (fun (x,y) -> update_environ x y constr environ) interleaved |> List.flatten
     |PSum (id, pat'), TSum x -> failwith "save for later"
     |PNil, TCons _ -> []
-    |PCons (h::t), TCons typ -> (update_environ h typ constr environ)@(update_environ t (TCons typ) constr environ)
+    |PCons (h, t), TCons typ -> (update_environ h typ constr environ)@(update_environ t (TCons typ) constr environ)
     |_ -> failwith "unimplemented"
   end
 
@@ -127,7 +122,7 @@ and typecheck_bop (exp) (constr) (environ) =
   let bop, e1, e2 = 
     begin
       match exp with
-      |Binop (op, e, e') -> (op, (typecheck_expr e constr environ), (typecheck_expr e' constr environ))
+      |_, Binop (op, e, e') -> (op, (typecheck_expr e constr environ), (typecheck_expr e' constr environ))
       |_ -> failwith "Typecheck error"
     end
   in
@@ -143,7 +138,7 @@ and typecheck_bop (exp) (constr) (environ) =
   |ConsBop -> 
     begin
       match (fst e1).ttype, (fst e2).ttype with
-      |a, TCons a -> ({typed_pos = parsed.parsed_pos; ttype = TCons a}, Binop (bop, e1, e2))
+      |a, TCons b when a = b -> ({typed_pos = parsed.parsed_pos; ttype = TCons b}, Binop (bop, e1, e2))
       |_ -> failwith "Inconsistant types in list"
     end
   |Seq -> 
@@ -171,7 +166,7 @@ and typecheck_bop (exp) (constr) (environ) =
       match snd e1 with
       |Var x -> 
         begin 
-          match List.assoc x environ with
+          match List.assoc_opt x environ with
           |Some (TRef a) when (fst e2).ttype = a -> 
             ({typed_pos = parsed.parsed_pos; ttype = TUnit}, Binop (bop, e1, e2))
           |_ -> failwith "typecheck error"
@@ -186,14 +181,22 @@ and typecheck_bop (exp) (constr) (environ) =
     begin
       match (fst e1).ttype, (fst e2).ttype with
       |t, TFun (arg_t, e_t) when arg_t = t -> 
-        ({typed_pos = parsed.parsed_pos; ttype = e_t}, App (f_typed, e_typed))
+        ({typed_pos = parsed.parsed_pos; ttype = e_t}, App (e1, e2))
       |_ -> failwith "argument type does not match function"
     end
-  |_ -> failwith "Inaccessible Branch"
 
-(* and parsed_to_typed_pat pat = 
-   match pat with
-   |(psd, PUnit) -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "why do we have this for patterns"}, PUnit) *)
+and parsed_to_typed_pat pat = 
+  match pat with
+  |(psd, PUnit) -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PUnit)
+  |(psd, PBool b) -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PBool b)
+  |psd, PInt i -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PInt i)
+  |psd, PString s -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PString s)
+  |psd, PVar x -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PVar x)
+  |psd, PTup l1-> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PTup (List.map parsed_to_typed_pat l1))
+  |psd, PSum (id, pat') -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PSum (id, (parsed_to_typed_pat pat')))
+  |psd, PNil -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PNil)
+  |psd, PCons (h, t) -> ({typed_pos = psd.parsed_pos; ttype = TPlaceholder "N/A"}, PCons (parsed_to_typed_pat h, parsed_to_typed_pat t))
+  |_ -> failwith "unimplemented"
 
 (* | Nil
    | Int of Int64.t

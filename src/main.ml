@@ -2,6 +2,7 @@ open Cli
 open Lexing
 open Lexer
 open Parser
+open Typecheck
 
 let report_lex_error file_name out_channel pos message =
   let l_num = pos.pos_lnum |> string_of_int in
