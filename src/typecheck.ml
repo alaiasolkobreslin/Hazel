@@ -79,6 +79,7 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
       |_ -> failwith "argument type does not match function"
     end
   |(parsed, Binop (b, e1, e2)) -> typecheck_bop (parsed, Binop (b, e1, e2)) constr environ
+  |parsed, Unaop (u, e) -> typecheck_unop e constr environ
   |_ -> failwith "typecheck error"
 
 and p_match_helper typ lst acc constr env = 
@@ -184,6 +185,26 @@ and typecheck_bop (exp) (constr) (environ) =
         ({typed_pos = parsed.parsed_pos; ttype = e_t}, App (e1, e2))
       |_ -> failwith "argument type does not match function"
     end
+and typecheck_unop exp constr environ = 
+  let prsed = fst exp in
+  let uop, e = 
+    begin 
+      match exp with
+      |_, Unaop (op, ex) -> (op, typecheck_expr ex constr environ)
+      |_ -> failwith "typecheck error"
+    end
+  in
+  begin 
+    match uop with
+    |Not -> if (fst e).ttype = TBool then ({typed_pos = prsed.parsed_pos; ttype = TBool}, Unaop (uop, e)) else failwith "typecheck error"
+    |Neg -> if (fst e).ttype = TInt then ({typed_pos = prsed.parsed_pos; ttype = TInt}, Unaop (uop, e)) else failwith "typecheck error"
+    |Ref -> ({typed_pos = prsed.parsed_pos; ttype = TRef (fst e).ttype}, Unaop (uop, e))
+    |Deref -> 
+      begin match (fst e).ttype with
+        |TRef a -> ({typed_pos = prsed.parsed_pos; ttype = a}, Unaop (uop, e))
+        |_ -> failwith "typecheck error"        
+      end
+  end
 
 and parsed_to_typed_pat pat = 
   match pat with
@@ -216,4 +237,6 @@ and parsed_to_typed_pat pat =
    | Cons of ('a expr_ann * 'a expr_ann)
    | Constraint of (string * 'a expr_ann)
    | Constructor of (string * 'a expr_ann)
-   | Record of (string * 'a expr_ann) list *)
+   | Record of (string * 'a expr_ann) list 
+
+   and unop = Not | Neg | Ref | Deref*)
