@@ -1,25 +1,23 @@
-OCAMLBUILD=ocamlbuild -use-ocamlfind
+NAME=hazel
 
-MAIN_OUT=main.byte
-TEST_OUT=test.byte
+.PHONY: all build clean test
 
-# source directories
-SRC=src
-TESTS=tests
+all: build
 
-# build main executable
-default: $(MAIN_OUT)
+build:
+	dune build @install
 
-$(MAIN_OUT): $(SRC)
-	$(OCAMLBUILD) -cflag -g -lflag -g $(MAIN_OUT) -I $(SRC)
+doc:
+	dune build @doc
 
-$(TEST_OUT): $(SRC) $(TESTS)
-	$(OCAMLBUILD) -tag 'debug' -cflag -g -lflag -g $(TEST_OUT) -I $(SRC) -I $(TESTS)
+run:
+	dune exec $(NAME)
+
+install:
+	dune install
+
+test:
+	dune runtest
 
 clean:
-	ocamlbuild -clean
-	rm -f *.s
-
-# run ounit tests
-test: $(TEST_OUT)
-	./$(TEST_OUT)
+	dune clean

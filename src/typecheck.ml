@@ -1,4 +1,5 @@
 open Ast
+open Refinement
 type constructor = string
 type constructors = (constructor * (types option * string)) list 
 type env = (string * types) list

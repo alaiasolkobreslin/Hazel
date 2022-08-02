@@ -1,8 +1,10 @@
-open Cli
+open Hazel.Cli
 open Lexing
-open Lexer
-open Parser
-open Typecheck
+open Hazel.Lexer
+open Parsing
+open Hazel.Ast
+open Hazel.Parser
+open Hazel.Sexpr
 
 let report_lex_error file_name out_channel pos message =
   let l_num = pos.pos_lnum |> string_of_int in
@@ -23,14 +25,14 @@ let lex_channel write_out in_channel out_channel file_name =
         begin
           if write_out then
             output_string out_channel tok;
-          Parser.lexer Lexer.token lexbuf |> step_lexer
+          lexer token lexbuf |> step_lexer
         end in
     step_lexer (Some "");
     close_out out_channel; None
   with
-  | Lexer.LexingError (p, msg) ->
+  | LexingError (p, msg) ->
     report_lex_error file_name out_channel p msg; None
-  | Parsing.Parse_error -> failwith "unimplemented"
+  | Parse_error -> failwith "unimplemented"
 
 let parse_channel write_out in_channel out_channel file_name = 
   try
@@ -38,19 +40,19 @@ let parse_channel write_out in_channel out_channel file_name =
     let fmt = Format.formatter_of_out_channel out_channel in
     if write_out then
       begin
-        let ast = Parser.prog Lexer.token lexbuf in
+        let ast = prog token lexbuf in
         ast
-        |> Ast.prog_to_sexpr
-        |> Sexpr.pp_print_sexpr fmt;
+        |> prog_to_sexpr
+        |> pp_print_sexpr fmt;
         Format.pp_force_newline fmt ();
         Format.pp_print_flush fmt ();
         Some ast
       end
-    else Some (Parser.prog Lexer.token lexbuf)
+    else Some (prog token lexbuf)
   with
-  | Lexer.LexingError (p, msg) ->
+  | LexingError (p, msg) ->
     report_lex_error file_name out_channel p msg; None
-  | Parsing.Parse_error -> failwith "unimplemented"
+  | Parse_error -> failwith "unimplemented"
 
 let chop_file file_name ext =
   print_endline file_name;
