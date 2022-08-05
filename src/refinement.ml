@@ -1,4 +1,6 @@
 open Ast
+open Z3
+open Z3.Solver
 open Z3.Arithmetic
 open Z3.Boolean
 open Z3.Symbol
@@ -37,4 +39,6 @@ and binop_to_term ctx bop e1 e2 =
 
 let is_subtype t1 t2 = failwith "unimplemented"
 
-let typecheck_refinement args = failwith "unimplemented"
+let typecheck_refinement args = 
+  let solver = mk_context [] |> fun env -> mk_solver env None in
+  failwith "unimplemented"
