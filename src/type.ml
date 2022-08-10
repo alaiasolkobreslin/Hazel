@@ -40,7 +40,7 @@ let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : t
   let (pos, e) = expr in
   match e with
   | Unit -> (TUnit, Unit)
-  | Nil -> failwith "unimplemented"
+  | Nil -> (TPlaceholder fresh_var, Nil)
   | Int n -> (TInt, Int n)
   | Bool b -> (TBool, Bool b)
   | String s -> (TString, String s)
