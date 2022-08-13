@@ -66,15 +66,38 @@ let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : t
         let name = TPlaceholder fresh_var in
         let new_env = (s, name)::(List.remove_assoc s var_env) in
         TPlaceholder fresh_var, Let((name, PVar s), label_ast e1 var_env cons, label_ast e2 new_env cons)
-      | PTup lst -> failwith "Honestly it's probably better to move this to a helper, but I'm already started"
-      | PSum (cons, pat) -> failwith "Again, go to helper"
+      | PTup lst -> 
+        let new_env = label_pat pat var_env cons in 
+        (* I'm a little unsure about the second fresh variable placeholder, but I think we can take care of it in 
+           unification *)
+        TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PTup lst), label_ast e1 var_env cons, label_ast e2 new_env cons)
+      | PSum (con, pat'') ->
+        let new_env = label_pat pat var_env cons in 
+        TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PSum (con, pat'')), label_ast e1 var_env cons, label_ast e2 new_env cons)
       | PNil -> TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PNil), label_ast e1 var_env cons, label_ast e2 var_env cons)
-      | PCons (pat1, pat2) -> failwith "again, helper"
+      | PCons (pat1, pat2) -> 
+        let new_env = label_pat pat var_env cons in 
+        TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PCons (pat1, pat2)), label_ast e1 var_env cons, label_ast e2 new_env cons)
     end
   | _ -> failwith "unimplemented"
 
-and label_pats pat var_env cons = 
-failwith "unimplemented"
+and label_pat pat var_env cons = 
+    let (_, pat') = pat in
+    match pat' with
+    | PUnit -> var_env
+    | PWild -> var_env
+    | PBool b -> var_env
+    | PInt n -> var_env
+    | PString s -> var_env
+    | PVar s -> 
+      let name = TPlaceholder fresh_var in
+      let new_env = (s, name)::(List.remove_assoc s var_env) in
+      new_env
+    | PTup lst -> List.fold_left (fun env tern -> label_pat tern env cons) var_env lst
+    | PSum (con, pat'') -> label_pat pat'' var_env cons
+    | PNil -> var_env
+    | PCons (pat1, pat2) -> List.fold_left (fun env tern -> label_pat tern env cons) var_env [pat1; pat2]
+
 let type_expr expr var_env typ_env =
   let (pos, e) = expr in
   match e with
