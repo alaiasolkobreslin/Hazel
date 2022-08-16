@@ -27,7 +27,6 @@ and 'a expr =
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
   | Cons of ('a expr_ann * 'a expr_ann)
-  | Constraint of (string * 'a expr_ann)
   | Constructor of (string * 'a expr_ann)
   | Record of (string * 'a expr_ann) list
 
@@ -87,7 +86,7 @@ and types =
   | TRef of types
   | TRecord of (string * types) list
   | TVar of string
-  | TConstraint of types * types 
+  | TConstraint of (unit pattern * unit expr_ann)
   | TFun of (types * types)
   | Subst of types ref
   (* and type_decl =  *)
@@ -181,7 +180,6 @@ let rec expr_to_sexpr = function
     SList [SNode "::";
            e1 |> snd |> expr_to_sexpr;
            e2 |> snd |> expr_to_sexpr]
-  | Constraint (str, e)
   | Constructor (str, e) ->
     SList [SNode str;
            e |> snd |> expr_to_sexpr]
@@ -278,8 +276,8 @@ and types_to_sexpr = function
       |_ -> SList (pre_node@([SNode "}"]))
     end
   | TVar str -> SNode str
-  | TConstraint (t1, t2) ->
-    SList [SNode "constraint"; types_to_sexpr t1; types_to_sexpr t2]
+  | TConstraint (pat, (_, expr)) ->
+    SList [SNode "constraint"; pat_to_sexpr pat; expr_to_sexpr expr]
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
   | _ -> failwith "unimplemented"
 
