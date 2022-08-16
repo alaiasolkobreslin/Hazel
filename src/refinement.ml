@@ -37,6 +37,43 @@ and binop_to_term ctx bop e1 e2 =
   | Or -> mk_or ctx [t1; t2]
   | _ -> failwith "operation not supported"
 
+let (>>=) pat = failwith ""
+
+let rec bind_pats ctx pats exprs =
+  match pats, exprs with
+  | (_, p)::t1, (_, e)::t2 ->
+    begin
+      let rhs = bind_pats ctx t1 t2 in
+      let lhs = bind_pat ctx p e in
+      mk_implies ctx lhs rhs
+    end
+  | [], [] -> mk_true ctx
+  | _ -> failwith "patterns don't match"
+
+and bind_pat ctx pat e =
+  match pat, e with
+  | (PVar v, Bool b) ->
+    begin
+      let b' = if b then mk_true ctx else mk_false ctx in
+      let v' = mk_const ctx (mk_string ctx v) in
+      mk_eq ctx v' b'
+    end
+  | (PVar v, Int i) ->
+    begin
+      let i' = mk_int ctx (Int64.to_int i) |> mk_const ctx in
+      let v' = mk_const ctx (mk_string ctx v) in
+      mk_eq ctx v' i'
+    end
+  | (PTup pats, Tuple exprs) -> bind_pats ctx pats exprs
+  | _ -> failwith "unimplemented"
+
+(* let let_defn_to_term ctx defn = match defn with
+  | (_, pat, e) ->
+    begin
+      match (pat, e) with
+      | 
+    end *)
+
 let is_subtype t1 t2 = failwith "unimplemented"
 
 let typecheck_refinement args = 
