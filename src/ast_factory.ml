@@ -19,7 +19,7 @@ let make_if_then e1 e2 e3 pos : parsed expr_ann = (wrap pos, IfThen (e1, e2, e3)
 
 let make_variant str e pos : parsed expr_ann = (wrap pos, Constructor (str, e))
 
-let make_constraint str e pos : parsed expr_ann = (wrap pos, Constraint (str, e))
+(* let make_constraint str e pos : parsed expr_ann = (wrap pos, Constraint (str, e)) *)
 
 let make_binop bop e1 e2 pos : parsed expr_ann = (wrap pos, Binop (bop, e1, e2))
 

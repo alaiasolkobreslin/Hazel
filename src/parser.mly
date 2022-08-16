@@ -236,7 +236,7 @@ expr:
   | e1=expr b=bop e2=expr                        { make_binop b e1 e2 $startpos }
   | u=uop e=expr                                 { make_unop u e $startpos }
   | c=CONSTRUCTOR e=value                        { make_variant c e $startpos }
-  | CONSTRAINT i=ID EQ e=expr                    { make_constraint i e $startpos }
+  // | CONSTRAINT i=ID EQ e=expr                    { make_constraint i e $startpos }
   | FUN a=arg ARROW e=expr                       { make_fun a e $startpos }
   | LET p=pattern EQ e=expr IN e2=expr           { make_let_notf p e e2 $startpos }
   | LET p=pattern a=arg EQ e=expr IN e2=expr     { make_let_f p a e e2 $startpos }
