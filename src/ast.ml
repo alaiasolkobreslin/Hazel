@@ -30,6 +30,23 @@ and 'a expr =
   | Constructor of (string * 'a expr_ann)
   | Record of (string * 'a expr_ann) list
 
+and expr_restricted = 
+  | RUnit 
+  | RNil
+  | RInt of Int64.t
+  | RBool of bool 
+  | RString of string
+  | RChar of string
+  | RVar of string 
+  | RTuple of expr_restricted list
+  | RIfThen of (expr_restricted * expr_restricted * expr_restricted)
+  | RMatchWithWhen of (expr_restricted * (expr_restricted * expr_restricted option * pattern_restricted) list)
+  | RBinop of (bop * expr_restricted * expr_restricted)
+  | RUnaop of (unop * expr_restricted)
+  | RCons of (expr_restricted * expr_restricted)
+  | RConstructor of (string * expr_restricted)
+  | RRecord of (string * expr_restricted) list
+
 and 'a expr_ann = 'a * 'a expr
 
 and 'a mutual_rec = string * 'a expr_ann
@@ -45,6 +62,18 @@ and 'a pattern =
   | PSum of string * 'a pattern_ann
   | PNil
   | PCons of 'a pattern_ann * 'a pattern_ann
+
+and pattern_restricted = 
+  | RPUnit
+  | RPWild
+  | RPBool of bool
+  | RPInt of Int64.t
+  | RPString of string
+  | RPVar of string
+  | RPTup of pattern_restricted list
+  | RPSum of string * pattern_restricted
+  | RPNil
+  | RPCons of pattern_restricted * pattern_restricted
 
 and 'a pattern_ann = 'a * 'a pattern
 
@@ -86,7 +115,7 @@ and types =
   | TRef of types
   | TRecord of (string * types) list
   | TVar of string
-  | TConstraint of (unit pattern * unit expr_ann)
+  | TConstraint of (pattern_restricted * expr_restricted)
   | TFun of (types * types)
   | Subst of types ref
   (* and type_decl =  *)
@@ -129,7 +158,44 @@ let uop_to_sexpr uop =
     | Deref -> "!" in
   SNode str
 
-let rec expr_to_sexpr = function
+
+
+let rec rexpr_to_sexpr = function
+  | RUnit -> SNode ("()")
+  | RNil -> SNode ("[]")
+  | RInt i -> SNode (Int64.to_string i)
+  | RBool b -> SNode (string_of_bool b)
+  | RString s -> SNode ("\"" ^ (Util.escape_string s) ^ "\"")
+  | RChar c -> SNode ("'" ^ (Util.escape_string c) ^ "'")
+  | RVar id -> SNode id
+  | RTuple lst -> SList (List.map (fun elt -> elt |> rexpr_to_sexpr) lst)
+  | RIfThen (e1, e2, e3) -> 
+    SList [SNode "if"; e1 |> rexpr_to_sexpr;
+           SNode "then"; e2 |> rexpr_to_sexpr;
+           SNode "else"; e3 |> rexpr_to_sexpr]
+  | RMatchWithWhen (e, lst) -> 
+    SList [SNode "match";
+           e |> rexpr_to_sexpr;
+           SList (rexpr_match_with_when_to_sexpr lst)]
+  | RBinop (bop, e1, e2) ->
+    SList [bop_to_sexpr bop;
+           e1 |> rexpr_to_sexpr;
+           e2 |> rexpr_to_sexpr]
+  | RUnaop (uop, e) ->
+    SList [uop_to_sexpr uop;
+           e |> rexpr_to_sexpr]
+  | RCons (e1, e2) ->
+    SList [SNode "::";
+           e1 |> rexpr_to_sexpr;
+           e2 |> rexpr_to_sexpr]
+  | RConstructor (str, e) ->
+    SList [SNode str;
+           e |> rexpr_to_sexpr]
+  | RRecord lst -> 
+    SList (List.map (fun (str, e) -> 
+        SList [SNode str; e |> rexpr_to_sexpr]) lst)
+
+and expr_to_sexpr = function
   | Unit -> SNode ("()")
   | Nil -> SNode ("[]")
   | Int i -> SNode (Int64.to_string i)
@@ -140,12 +206,12 @@ let rec expr_to_sexpr = function
   | Tuple lst -> SList (List.map (fun elt -> elt |> snd |> expr_to_sexpr) lst)
   | IfThen (e1, e2, e3) -> 
     SList [SNode "if"; e1 |> snd |> expr_to_sexpr;
-           SNode "then"; e2 |> snd |> expr_to_sexpr;
-           SNode "else"; e3 |> snd |> expr_to_sexpr]
+            SNode "then"; e2 |> snd |> expr_to_sexpr;
+            SNode "else"; e3 |> snd |> expr_to_sexpr]
   | Let (p, e1, e2) -> 
     SList [SNode "let"; p |> snd |> pat_to_sexpr;
-           SNode "="; e1 |> snd |> expr_to_sexpr;
-           SNode "in"; e2 |> snd |> expr_to_sexpr]
+            SNode "="; e1 |> snd |> expr_to_sexpr;
+            SNode "in"; e2 |> snd |> expr_to_sexpr]
   | LetRec (lst, expr) ->
     begin
       match lst with
@@ -160,29 +226,29 @@ let rec expr_to_sexpr = function
     end
   | MatchWithWhen (e, lst) -> 
     SList [SNode "match";
-           e |> snd |> expr_to_sexpr;
-           SList (match_with_when_to_sexpr lst)]
+            e |> snd |> expr_to_sexpr;
+            SList (match_with_when_to_sexpr lst)]
   | Fun (lst, e) ->
     SList [SNode "lambda"; 
-           SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst);
-           e |> snd |> expr_to_sexpr]
+            SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst);
+            e |> snd |> expr_to_sexpr]
   | App (e1, e2) ->
     SList [e1 |> snd |> expr_to_sexpr;
-           e2 |> snd |> expr_to_sexpr]
+            e2 |> snd |> expr_to_sexpr]
   | Binop (bop, e1, e2) ->
     SList [bop_to_sexpr bop;
-           e1 |> snd |> expr_to_sexpr;
-           e2 |> snd |> expr_to_sexpr]
+            e1 |> snd |> expr_to_sexpr;
+            e2 |> snd |> expr_to_sexpr]
   | Unaop (uop, e) ->
     SList [uop_to_sexpr uop;
-           e |> snd |> expr_to_sexpr]
+            e |> snd |> expr_to_sexpr]
   | Cons (e1, e2) ->
     SList [SNode "::";
-           e1 |> snd |> expr_to_sexpr;
-           e2 |> snd |> expr_to_sexpr]
+            e1 |> snd |> expr_to_sexpr;
+            e2 |> snd |> expr_to_sexpr]
   | Constructor (str, e) ->
     SList [SNode str;
-           e |> snd |> expr_to_sexpr]
+            e |> snd |> expr_to_sexpr]
   | Record lst -> 
     SList (List.map (fun (str, e) -> 
         SList [SNode str; e |> snd |> expr_to_sexpr]) lst)
@@ -199,6 +265,18 @@ and match_with_when_to_sexpr = function
      SNode "->"; e |> snd |> expr_to_sexpr] @
     (match_with_when_to_sexpr_help t)
 
+and rexpr_match_with_when_to_sexpr = function
+  | [] -> []
+  | (e1, Some e2, p)::t ->
+    [SNode "with"; SNode "|"; rpat_to_sexpr p;
+      SNode "when"; rexpr_to_sexpr e2;
+      SNode "->"; e1 |> rexpr_to_sexpr] @
+    (rexpr_match_with_when_to_sexpr_help t)
+  | (e, None, p)::t -> 
+    [SNode "with"; SNode "|"; rpat_to_sexpr p;
+      SNode "->"; e |> rexpr_to_sexpr] @
+    (rexpr_match_with_when_to_sexpr_help t)
+
 and match_with_when_to_sexpr_help = function
   | [] -> []
   | (e1, Some e2, p)::t ->
@@ -210,6 +288,18 @@ and match_with_when_to_sexpr_help = function
     [SNode "|"; pat_to_sexpr (snd p);
      SNode "->"; e |> snd |> expr_to_sexpr] @
     (match_with_when_to_sexpr t)
+
+and rexpr_match_with_when_to_sexpr_help = function
+  | [] -> []
+  | (e1, Some e2, p)::t ->
+    [SNode "|"; rpat_to_sexpr p;
+      SNode "when"; rexpr_to_sexpr e2;
+      SNode "->"; e1 |> rexpr_to_sexpr] @
+    (rexpr_match_with_when_to_sexpr t)
+  | (e, None, p)::t -> 
+    [SNode "|"; rpat_to_sexpr p;
+      SNode "->"; e |> rexpr_to_sexpr] @
+    (rexpr_match_with_when_to_sexpr t)
 
 and rec_and_to_sexpr = function
   | [] -> []
@@ -232,6 +322,21 @@ and pat_to_sexpr = function
     SList [p1 |> snd |> pat_to_sexpr; SNode "::";
            p2 |> snd |> pat_to_sexpr]
 
+and rpat_to_sexpr = function
+  | RPUnit -> SNode "()"
+  | RPWild -> SNode "_"
+  | RPBool b -> SNode (string_of_bool b)
+  | RPInt i -> SNode (Int64.to_string i)
+  | RPString s
+  | RPVar s -> SNode s
+  | RPTup lst ->  SList (List.map (fun elt -> elt |> rpat_to_sexpr) lst)
+  | RPSum (str, p) -> 
+    SList [SNode str; p |> rpat_to_sexpr]
+  | RPNil -> SNode "[]"
+  | RPCons (p1, p2) -> 
+    SList [p1 |> rpat_to_sexpr; SNode "::";
+          p2 |> rpat_to_sexpr]
+      
 and open_to_sexpr = function
   | (_, str) ->
     SList [SNode "open"; SNode str]
@@ -276,8 +381,8 @@ and types_to_sexpr = function
       |_ -> SList (pre_node@([SNode "}"]))
     end
   | TVar str -> SNode str
-  | TConstraint (pat, (_, expr)) ->
-    SList [SNode "constraint"; pat_to_sexpr pat; expr_to_sexpr expr]
+  | TConstraint (pat, expr) ->
+    SList [SNode "constraint"; rpat_to_sexpr pat; rexpr_to_sexpr expr]
   | TFun (t1, t2) -> SList [types_to_sexpr t1; SNode "->"; types_to_sexpr t2]
   | _ -> failwith "unimplemented"
 
