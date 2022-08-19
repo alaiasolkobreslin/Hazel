@@ -46,7 +46,7 @@ let make_let_defn pat e pos : parsed let_defn =
   (wrap pos, pat, e)
 
 let make_let_f x args e1 e2 pos : parsed expr_ann = 
-  (wrap pos, Let (x, (wrap pos, Fun (args, e1)), e2))
+  (wrap pos, Let (x, (make_fun args e1 pos), e2))
 
 let make_letrec_notf i e pos : parsed expr_ann = 
   (wrap pos, LetRec ([(i, e)], e))
