@@ -31,7 +31,11 @@ let make_nil pos : parsed expr_ann = (wrap pos, Nil)
 
 let make_arr e1 e2 pos : parsed expr_ann = (wrap pos, Cons (e1, e2))
 
-let make_fun l e pos : parsed expr_ann = (wrap pos, Fun (l, e))
+let rec make_fun l e pos : parsed expr_ann = 
+  match l with
+  |x::y::xs -> (wrap pos, (Fun (x, (make_fun (y::xs) e pos))))
+  |x::[] -> (wrap pos, (Fun (x, e)))
+  |[] -> failwith "Function declaration has no arguments"
 
 let make_args x a  = (x :: a)
 

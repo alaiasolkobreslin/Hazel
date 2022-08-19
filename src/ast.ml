@@ -22,7 +22,7 @@ and 'a expr =
   | Let of ('a pattern_ann * 'a expr_ann * 'a expr_ann)
   | LetRec of (('a pattern_ann * 'a expr_ann) list * 'a expr_ann)
   | MatchWithWhen of ('a expr_ann * ('a expr_ann * 'a expr_ann option * 'a pattern_ann) list) (*extra expr for when *)
-  | Fun of ('a pattern_ann list * 'a expr_ann)
+  | Fun of ('a pattern_ann * 'a expr_ann)
   | App of ('a expr_ann * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
@@ -228,9 +228,9 @@ and expr_to_sexpr = function
     SList [SNode "match";
             e |> snd |> expr_to_sexpr;
             SList (match_with_when_to_sexpr lst)]
-  | Fun (lst, e) ->
+  | Fun (arg, e) ->
     SList [SNode "lambda"; 
-            SList (List.map (fun elt -> elt |> snd |> pat_to_sexpr) lst);
+            arg |> snd |> pat_to_sexpr;
             e |> snd |> expr_to_sexpr]
   | App (e1, e2) ->
     SList [e1 |> snd |> expr_to_sexpr;
