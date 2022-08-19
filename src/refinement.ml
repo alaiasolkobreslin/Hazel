@@ -37,8 +37,6 @@ and binop_to_term ctx bop e1 e2 =
   | Or -> mk_or ctx [t1; t2]
   | _ -> failwith "operation not supported"
 
-let (>>=) pat = failwith ""
-
 let rec bind_pats ctx pats exprs =
   match pats, exprs with
   | (_, p)::t1, (_, e)::t2 ->
@@ -67,12 +65,12 @@ and bind_pat ctx pat e =
   | (PTup pats, Tuple exprs) -> bind_pats ctx pats exprs
   | _ -> failwith "unimplemented"
 
-(* let let_defn_to_term ctx defn = match defn with
-  | (_, pat, e) ->
-    begin
-      match (pat, e) with
-      | 
-    end *)
+let let_defn_to_term ctx expr defn = match defn with
+  | (_, pat, e) -> bind_pat ctx pat e
+
+
+let prog_to_term ctx prog = match prog with
+  | _ -> failwith "unimplemented"
 
 let is_subtype t1 t2 = failwith "unimplemented"
 
