@@ -9,7 +9,7 @@ type checked = Resolved | Unresolved of types
 type schema = id list * types
 type env = (id * schema) list
 type constructor = string
-type constructors = (constructor * (types option * string)) list 
+type constructors = (constructor * (types * types)) list 
 
 let lookup env key =
   match List.find_opt (fun (k, _) -> k = key) env with
@@ -79,6 +79,24 @@ let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : t
         let new_env = label_pat pat var_env cons in 
         TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PCons (pat1, pat2)), label_ast e1 var_env cons, label_ast e2 new_env cons)
     end
+  | LetRec _ -> failwith "try again later"
+  | MatchWithWhen _ -> failwith "try again later"
+  | Fun (pat, exp) -> 
+    let new_env = label_pat pat var_env cons in
+    TPlaceholder fresh_var, Fun (pat, label_ast exp new_env cons)
+  | App (e1, e2) -> TPlaceholder fresh_var, App (label_ast e1 var_env cons, label_ast e2 var_env cons)
+  | Binop (op, e1, e2) -> TPlaceholder fresh_var, Binop (op, label_ast e1 var_env cons, label_ast e2 var_env cons)
+  | Unaop (op, e) -> TPlaceholder fresh_var, Unaop (op, label_ast e var_env cons)
+  | Cons (e1, e2) -> TPlaceholder fresh_var, Cons (label_ast e1 var_env cons, label_ast e2 var_env cons)
+  | Constructor (str, exp) -> 
+    begin
+      match List.assoc_opt str cons with
+      | None -> failwith "Constructor doesn't exist"
+      | Some t -> 
+          fst t, Constructor (str, label_ast exp var_env cons)
+    end
+  | Record lst -> 
+    TPlaceholder fresh_var, Record (List.map (fun (a, b) -> (a, label_ast b var_env cons)) lst)
   | _ -> failwith "unimplemented"
 
 and label_pat pat var_env cons = 
