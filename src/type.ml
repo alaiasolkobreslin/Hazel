@@ -79,8 +79,21 @@ let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : t
         let new_env = label_pat pat var_env cons in 
         TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PCons (pat1, pat2)), label_ast e1 var_env cons, label_ast e2 new_env cons)
     end
-  | LetRec _ -> failwith "try again later"
-  | MatchWithWhen _ -> failwith "try again later"
+  | LetRec (lst, exp) -> 
+    let cum_env = List.fold_right (fun (a, b) acc -> label_pat a acc cons) lst var_env in
+    let new_lst = List.map (fun (a, b) -> (a, label_ast b cum_env cons)) lst in
+    TPlaceholder fresh_var, LetRec (new_lst, label_ast exp cum_env cons)
+  | MatchWithWhen (exp, lst) -> 
+    let new_exp = label_ast exp var_env cons in
+    let new_lst = List.map (fun (a, b, c) -> 
+        match b with 
+        | None -> 
+          let new_env = label_pat c var_env cons in
+          (label_ast a new_env cons, b, c)
+        | Some e -> 
+          let new_env = label_pat c var_env cons in
+          (label_ast a new_env cons, Some (label_ast e new_env cons), c)) lst in 
+    TPlaceholder fresh_var, MatchWithWhen (new_exp, new_lst)
   | Fun (pat, exp) -> 
     let new_env = label_pat pat var_env cons in
     TPlaceholder fresh_var, Fun (pat, label_ast exp new_env cons)
