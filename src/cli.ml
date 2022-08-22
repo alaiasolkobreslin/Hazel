@@ -11,11 +11,13 @@ type parse_data =
     commands : command list;
     files : string list;
     out_dir : string;
+    print_std : bool;
   }
 
 let commands_list = ref []
 let files_list = ref []
 let output_path = ref ""
+let print_std_out = ref false
 
 let update_commands new_command =
   commands_list := new_command::(!commands_list)
@@ -31,11 +33,14 @@ let parse_typecheck = "--typecheck", Unit (fun () -> update_commands Typecheck),
                       "\tgenerate output from semantic analysis"
 let parse_irgen = "--irgen", Unit (fun () -> update_commands Irgen),
                   "\tgenerate intermediate code"
-let parse_out_dir = "-D ", String (fun str -> output_path := str),
+let parse_out_dir = "-D", String (fun str -> output_path := str),
                     "<path> Specify where to place generated diagnostic files"
 
+let parse_print_std_out = "-S", Unit (fun () -> print_std_out := true),
+                          "print results to standard output"
+
 let spec = align [parse_lex; parse_parse; parse_typecheck; parse_irgen;
-                  parse_out_dir]
+                  parse_out_dir; parse_print_std_out]
 
 let usage_msg = "hazelc [--lex files | --parse files |" ^
                 " --typecheck files | --irgen files]"
@@ -45,5 +50,6 @@ let parse_command () =
   {
     commands = !commands_list |> List.rev;
     files = !files_list |> List.rev;
-    out_dir = !output_path
+    out_dir = !output_path;
+    print_std = !print_std_out;
   }

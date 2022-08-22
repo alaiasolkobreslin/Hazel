@@ -1,1 +1,1 @@
-command = "../../_build/default/bin/main.exe --lex {filename}"
+command = "../../_build/default/bin/main.exe -S --lex {filename}"
