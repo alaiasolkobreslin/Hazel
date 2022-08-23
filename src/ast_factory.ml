@@ -87,7 +87,7 @@ let make_update_record pre i e pos : parsed expr_ann =
 
 let make_open i pos = (wrap pos, i)
 
-let make_prog l1 (l2 : parsed alias list) e pos = (wrap pos, l1, l2, e)
+let make_prog l1 (l2 : parsed alias list) e ex pos = (wrap pos, l1, l2, e, ex)
 
 (* TODO: finish exprs  *)
 

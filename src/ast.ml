@@ -3,7 +3,7 @@ type parsed = { parsed_pos : Lexing.position; ptype : types option }
 
 and typed = { typed_pos : Lexing.position; ttype : types}
 
-and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a let_defn list
+and 'a prog = 'a * 'a open_stmnt list * 'a alias list * 'a let_defn list * 'a expr_ann
 
 and 'a open_stmnt = 'a * string
 
@@ -393,7 +393,8 @@ let let_defn_to_sexpr = function
 
 let prog_to_sexpr (prog:'a prog) = 
   match prog with
-  | (_, l1, l2, e) ->
+  | (_, l1, l2, e, ex) ->
     SList ([SList (List.map open_to_sexpr l1);
             SList (List.map alias_to_sexpr l2);] @
-           (List.map let_defn_to_sexpr e))
+           (List.map let_defn_to_sexpr e) @ 
+           [expr_to_sexpr (snd ex)])
