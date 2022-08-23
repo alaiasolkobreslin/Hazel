@@ -51,7 +51,7 @@ let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : t
       | Some typ -> (typ, Var id)
       | None -> failwith "Variable referenced before defined"
     end
-  | Tuple [e1; e2] -> (TPlaceholder fresh_var, Tuple [label_ast e1 var_env cons; label_ast e2 var_env cons])
+  | Tuple lst -> TPlaceholder fresh_var, (Tuple (List.map (fun e -> label_ast e var_env cons) lst))
   | IfThen (b, e1, e2) -> (TPlaceholder fresh_var, IfThen (label_ast b var_env cons, label_ast e1 var_env cons, label_ast e2 var_env cons))
   | Let (pat, e1, e2) -> 
     let (_, pat') = pat in
@@ -128,6 +128,27 @@ and label_pat pat var_env cons =
     | PSum (con, pat'') -> label_pat pat'' var_env cons
     | PNil -> var_env
     | PCons (pat1, pat2) -> List.fold_left (fun env tern -> label_pat tern env cons) var_env [pat1; pat2]
+
+
+    (* Generates set of constraints for substitution for unification. Substitution substitutes first element out for the second *)
+let rec generate_constraints (exp : types expr_ann) (var_env) (cons) : (types * types) list = 
+  let reuse_root e = generate_constraints e var_env cons in
+  match exp with
+  | (TUnit, Unit) -> []
+  | (TPlaceholder fresh_var, Nil) -> []
+  | (TInt, Int n) -> []
+  | (TBool, Bool b) -> []
+  | (TString, String s) -> []
+  | (TChar, Char c) -> []
+  | (typ, Var id) -> []
+  | (typ, Tuple lst) -> 
+    let lst_cons = (List.fold_right (fun e acc -> (generate_constraints e var_env cons)@acc) lst []) in
+    let binding = List.fold_right (fun (typ, exp) acc -> typ::acc) lst [] in
+    (typ, TProd binding)::lst_cons
+  | (typ, IfThen ((btyp, b), (typ1, e1), (typ2, e2))) -> 
+    (typ, typ1)::(typ2, typ1)::(btyp, TBool)::(reuse_root (btyp, b))@(reuse_root (typ1, e1))@(reuse_root (typ2, e2))
+  | (typ, Let (pat, e1, (typ2, e2))) -> (typ, typ2)::(reuse_root e1)@(reuse_root (typ2, e2)) (*this case is wrong. The local environment needs to be updated*)
+  | _ -> failwith "ah fuck"
 
 let type_expr expr var_env typ_env =
   let (pos, e) = expr in
