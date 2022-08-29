@@ -6,10 +6,9 @@ type id = string
 (*type typ = Var of id | Int | Bool | Fun of typ * typ | Subst of typ ref*)
 type checked = Resolved | Unresolved of types
 
-type schema = id list * types
-type env = (id * schema) list
+type env = (id * types) list
 type constructor = string
-type constructors = (constructor * (types * types)) list 
+type constructors = (constructor * (types * types)) list (* constructor is the name, first type is the variant type, second type is the container type*)
 
 let lookup env key =
   match List.find_opt (fun (k, _) -> k = key) env with
@@ -36,53 +35,58 @@ let rec unify (t1 : types) (t2 :types) : unit =
 
 let fresh_var = failwith "unimplemented"
 
-let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : types expr_ann = 
+let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : (env * types) expr_ann = 
   let (pos, e) = expr in
-  match e with
-  | Unit -> (TUnit, Unit)
-  | Nil -> (TPlaceholder fresh_var, Nil)
-  | Int n -> (TInt, Int n)
-  | Bool b -> (TBool, Bool b)
-  | String s -> (TString, String s)
-  | Char c -> (TChar, Char c)
+    match e with
+  | Unit -> ((var_env, TUnit), Unit)
+  | Nil -> ((var_env, TPlaceholder fresh_var), Nil)
+  | Int n -> ((var_env, TInt), Int n)
+  | Bool b -> ((var_env, TBool), Bool b)
+  | String s -> ((var_env, TString), String s)
+  | Char c -> ((var_env, TChar), Char c)
   | Var id ->
     begin
       match lookup var_env id with
-      | Some typ -> (typ, Var id)
+      | Some typ -> ((var_env, typ), Var id)
       | None -> failwith "Variable referenced before defined"
     end
-  | Tuple lst -> TPlaceholder fresh_var, (Tuple (List.map (fun e -> label_ast e var_env cons) lst))
-  | IfThen (b, e1, e2) -> (TPlaceholder fresh_var, IfThen (label_ast b var_env cons, label_ast e1 var_env cons, label_ast e2 var_env cons))
+  | Tuple lst -> (var_env, TPlaceholder fresh_var), (Tuple (List.map (fun e -> label_ast e var_env cons) lst))
+  | IfThen (b, e1, e2) -> 
+    ((var_env, TPlaceholder fresh_var), IfThen (label_ast b var_env cons, label_ast e1 var_env cons, label_ast e2 var_env cons))
   | Let (pat, e1, e2) -> 
     let (_, pat') = pat in
     begin
       match pat' with
-      | PUnit -> TPlaceholder fresh_var, Let((TUnit, PUnit), label_ast e1 var_env cons, label_ast e2 var_env cons)
-      | PWild -> TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PWild), label_ast e1 var_env cons, label_ast e2 var_env cons)
-      | PBool b -> TPlaceholder fresh_var, Let((TBool, PBool b), label_ast e1 var_env cons, label_ast e2 var_env cons)
-      | PInt n -> TPlaceholder fresh_var, Let((TInt, PInt n), label_ast e1 var_env cons, label_ast e2 var_env cons)
-      | PString s -> TPlaceholder fresh_var, Let((TString, PString s), label_ast e1 var_env cons, label_ast e2 var_env cons)
+      | PUnit -> 
+        (var_env, TPlaceholder fresh_var), Let(((var_env, TUnit), PUnit), label_ast e1 var_env cons, label_ast e2 var_env cons)
+      | PWild -> 
+        (var_env, TPlaceholder fresh_var), Let(((var_env, TPlaceholder fresh_var), PWild), label_ast e1 var_env cons, label_ast e2 var_env cons)
+      | PBool b -> 
+        (var_env, TPlaceholder fresh_var), Let(((var_env, TBool), PBool b), label_ast e1 var_env cons, label_ast e2 var_env cons)
+      | PInt n -> (var_env, TPlaceholder fresh_var), Let(((var_env, TInt), PInt n), label_ast e1 var_env cons, label_ast e2 var_env cons)
+      | PString s -> (var_env, TPlaceholder fresh_var), Let(((var_env, TString), PString s), label_ast e1 var_env cons, label_ast e2 var_env cons)
       | PVar s -> 
         let name = TPlaceholder fresh_var in
         let new_env = (s, name)::(List.remove_assoc s var_env) in
-        TPlaceholder fresh_var, Let((name, PVar s), label_ast e1 var_env cons, label_ast e2 new_env cons)
+        (var_env, TPlaceholder fresh_var), Let(((var_env, name), PVar s), label_ast e1 var_env cons, label_ast e2 new_env cons)
       | PTup lst -> 
         let new_env = label_pat pat var_env cons in 
         (* I'm a little unsure about the second fresh variable placeholder, but I think we can take care of it in 
            unification *)
-        TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PTup lst), label_ast e1 var_env cons, label_ast e2 new_env cons)
+           (var_env, TPlaceholder fresh_var), Let(((var_env, TPlaceholder fresh_var), PTup lst), label_ast e1 var_env cons, label_ast e2 new_env cons)
       | PSum (con, pat'') ->
         let new_env = label_pat pat var_env cons in 
-        TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PSum (con, pat'')), label_ast e1 var_env cons, label_ast e2 new_env cons)
-      | PNil -> TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PNil), label_ast e1 var_env cons, label_ast e2 var_env cons)
+        (var_env, TPlaceholder fresh_var), Let(((var_env, TPlaceholder fresh_var), PSum (con, pat'')), label_ast e1 var_env cons, label_ast e2 new_env cons)
+      | PNil -> 
+        (var_env, TPlaceholder fresh_var), Let(((var_env, TPlaceholder fresh_var), PNil), label_ast e1 var_env cons, label_ast e2 var_env cons)
       | PCons (pat1, pat2) -> 
         let new_env = label_pat pat var_env cons in 
-        TPlaceholder fresh_var, Let((TPlaceholder fresh_var, PCons (pat1, pat2)), label_ast e1 var_env cons, label_ast e2 new_env cons)
+        (var_env, TPlaceholder fresh_var), Let(((var_env, TPlaceholder fresh_var), PCons (pat1, pat2)), label_ast e1 var_env cons, label_ast e2 new_env cons)
     end
   | LetRec (lst, exp) -> 
     let cum_env = List.fold_right (fun (a, b) acc -> label_pat a acc cons) lst var_env in
     let new_lst = List.map (fun (a, b) -> (a, label_ast b cum_env cons)) lst in
-    TPlaceholder fresh_var, LetRec (new_lst, label_ast exp cum_env cons)
+    (cum_env, TPlaceholder fresh_var), LetRec (new_lst, label_ast exp cum_env cons)
   | MatchWithWhen (exp, lst) -> 
     let new_exp = label_ast exp var_env cons in
     let new_lst = List.map (fun (a, b, c) -> 
@@ -93,24 +97,23 @@ let rec label_ast (expr) (var_env : (id * types) list) (cons : constructors) : t
         | Some e -> 
           let new_env = label_pat c var_env cons in
           (label_ast a new_env cons, Some (label_ast e new_env cons), c)) lst in 
-    TPlaceholder fresh_var, MatchWithWhen (new_exp, new_lst)
+          (var_env, TPlaceholder fresh_var), MatchWithWhen (new_exp, new_lst)
   | Fun (pat, exp) -> 
     let new_env = label_pat pat var_env cons in
-    TPlaceholder fresh_var, Fun (pat, label_ast exp new_env cons)
-  | App (e1, e2) -> TPlaceholder fresh_var, App (label_ast e1 var_env cons, label_ast e2 var_env cons)
-  | Binop (op, e1, e2) -> TPlaceholder fresh_var, Binop (op, label_ast e1 var_env cons, label_ast e2 var_env cons)
-  | Unaop (op, e) -> TPlaceholder fresh_var, Unaop (op, label_ast e var_env cons)
-  | Cons (e1, e2) -> TPlaceholder fresh_var, Cons (label_ast e1 var_env cons, label_ast e2 var_env cons)
+    (var_env, TPlaceholder fresh_var), Fun (pat, label_ast exp new_env cons)
+  | App (e1, e2) -> (var_env, TPlaceholder fresh_var), App (label_ast e1 var_env cons, label_ast e2 var_env cons)
+  | Binop (op, e1, e2) -> (var_env, TPlaceholder fresh_var), Binop (op, label_ast e1 var_env cons, label_ast e2 var_env cons)
+  | Unaop (op, e) -> (var_env, TPlaceholder fresh_var), Unaop (op, label_ast e var_env cons)
+  | Cons (e1, e2) -> (var_env, TPlaceholder fresh_var), Cons (label_ast e1 var_env cons, label_ast e2 var_env cons)
   | Constructor (str, exp) -> 
     begin
       match List.assoc_opt str cons with
       | None -> failwith "Constructor doesn't exist"
       | Some t -> 
-          fst t, Constructor (str, label_ast exp var_env cons)
+        (var_env, fst t), Constructor (str, label_ast exp var_env cons)
     end
   | Record lst -> 
-    TPlaceholder fresh_var, Record (List.map (fun (a, b) -> (a, label_ast b var_env cons)) lst)
-  | _ -> failwith "unimplemented"
+    (var_env, TPlaceholder fresh_var), Record (List.map (fun (a, b) -> (a, label_ast b var_env cons)) lst)
 
 and label_pat pat var_env cons = 
     let (_, pat') = pat in
@@ -131,23 +134,24 @@ and label_pat pat var_env cons =
 
 
     (* Generates set of constraints for substitution for unification. Substitution substitutes first element out for the second *)
-let rec generate_constraints (exp : types expr_ann) (var_env) (cons) : (types * types) list = 
+let rec generate_constraints (exp : (env * types) expr_ann) (var_env) (cons) : (types * types) list = 
   let reuse_root e = generate_constraints e var_env cons in
   match exp with
-  | (TUnit, Unit) -> []
-  | (TPlaceholder fresh_var, Nil) -> []
-  | (TInt, Int n) -> []
-  | (TBool, Bool b) -> []
-  | (TString, String s) -> []
-  | (TChar, Char c) -> []
-  | (typ, Var id) -> []
-  | (typ, Tuple lst) -> 
-    let lst_cons = (List.fold_right (fun e acc -> (generate_constraints e var_env cons)@acc) lst []) in
-    let binding = List.fold_right (fun (typ, exp) acc -> typ::acc) lst [] in
+  | ((_, TUnit), Unit) -> []
+  | ((_, TPlaceholder fresh_var), Nil) -> []
+  | ((_, TInt), Int n) -> []
+  | ((_, TBool), Bool b) -> []
+  | ((_, TString), String s) -> []
+  | ((_, TChar), Char c) -> []
+  | ((_, typ), Var id) -> []
+  | ((lenv, typ), Tuple lst) -> 
+    let lst_cons = (List.fold_right (fun e acc -> (generate_constraints e lenv cons)@acc) lst []) in
+    let binding = List.fold_right (fun ((lenv2, typ), exp) acc -> typ::acc) lst [] in
     (typ, TProd binding)::lst_cons
-  | (typ, IfThen ((btyp, b), (typ1, e1), (typ2, e2))) -> 
-    (typ, typ1)::(typ2, typ1)::(btyp, TBool)::(reuse_root (btyp, b))@(reuse_root (typ1, e1))@(reuse_root (typ2, e2))
-  | (typ, Let (pat, e1, (typ2, e2))) -> (typ, typ2)::(reuse_root e1)@(reuse_root (typ2, e2)) (*this case is wrong. The local environment needs to be updated*)
+  | ((lenv1, typ), IfThen (((lenv2, btyp), b), ((lenv3, typ1), e1), ((lenv4, typ2), e2))) -> 
+    (typ, typ1)::(typ2, typ1)::(btyp, TBool)::(reuse_root ((lenv2, btyp), b))@(reuse_root ((lenv3, typ1), e1))@(reuse_root ((lenv4, typ2), e2))
+  | ((lenv, typ), Let (pat, e1, ((lenv2, typ2), e2))) -> 
+    (typ, typ2)::(reuse_root e1)@(reuse_root ((lenv2, typ2), e2)) 
   | _ -> failwith "ah fuck"
 
 let type_expr expr var_env typ_env =
