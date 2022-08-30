@@ -222,12 +222,20 @@ let rec generate_constraints (exp : (env * types) expr_ann) (var_env) (cons) : (
     let binding = List.fold_right (fun ((lenv2, typ), exp) acc -> typ::acc) lst [] in
     (typ, TProd binding)::lst_cons
   | ((lenv1, typ), IfThen (((lenv2, btyp), b), ((lenv3, typ1), e1), ((lenv4, typ2), e2))) -> 
-    (typ, typ1)::(typ2, typ1)::(btyp, TBool)::(reuse_root ((lenv2, btyp), b))@(reuse_root ((lenv3, typ1), e1))@(reuse_root ((lenv4, typ2), e2))
+    (typ, typ1)
+    ::(typ2, typ1)
+    ::(btyp, TBool)
+    ::(reuse_root ((lenv2, btyp), b))
+    @(reuse_root ((lenv3, typ1), e1))
+    @(reuse_root ((lenv4, typ2), e2))
   | ((lenv, typ), Let (pat, e1, ((lenv2, typ2), e2))) -> 
-    (typ, typ2)::(generate_constraints e1 var_env cons)@(generate_constraints ((lenv2, typ2), e2) lenv2 cons) 
+    (typ, typ2)
+    ::(generate_constraints e1 var_env cons)
+    @(generate_constraints ((lenv2, typ2), e2) lenv2 cons) 
   | (lenv, typ), LetRec (lst, ((lenv2, typ2), e)) -> 
     let cum_cons = List.fold_right (fun (pats, e') acc -> (generate_constraints e' lenv cons) @ acc) lst [] in
-    (typ, typ2)::cum_cons@(generate_constraints ((lenv2, typ2), e) lenv cons)
+    (typ, typ2)
+    ::cum_cons@(generate_constraints ((lenv2, typ2), e) lenv cons)
   | (lenv, typ), MatchWithWhen (e, lst) -> 
     let fold_helper = 
       (fun (((lenv1, typ1), out), b, c) acc -> 
