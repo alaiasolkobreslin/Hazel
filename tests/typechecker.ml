@@ -47,6 +47,50 @@ let basic_expr_tests =
           ( Neg,
             ( { typed_pos = default_position; ttype = TInt },
               Int (Int64.of_int 5) ) ) );
+    make_typed_expr_test "1 + 1 is int"
+      ( { parsed_pos = default_position; ptype = None },
+        Binop
+          ( Plus,
+            ( { parsed_pos = default_position; ptype = None },
+              Int (Int64.of_int 1) ),
+            ( { parsed_pos = default_position; ptype = None },
+              Int (Int64.of_int 1) ) ) )
+      default_env
+      ( { typed_pos = default_position; ttype = TInt },
+        Binop
+          ( Plus,
+            ( { typed_pos = default_position; ttype = TInt },
+              Int (Int64.of_int 1) ),
+            ( { typed_pos = default_position; ttype = TInt },
+              Int (Int64.of_int 1) ) ) );
+    make_typed_expr_test "0 < 1 is bool"
+      ( { parsed_pos = default_position; ptype = None },
+        Binop
+          ( LT,
+            ( { parsed_pos = default_position; ptype = None },
+              Int (Int64.of_int 0) ),
+            ( { parsed_pos = default_position; ptype = None },
+              Int (Int64.of_int 1) ) ) )
+      default_env
+      ( { typed_pos = default_position; ttype = TBool },
+        Binop
+          ( LT,
+            ( { typed_pos = default_position; ttype = TInt },
+              Int (Int64.of_int 0) ),
+            ( { typed_pos = default_position; ttype = TInt },
+              Int (Int64.of_int 1) ) ) );
+    make_typed_expr_test "true and true is bool"
+      ( { parsed_pos = default_position; ptype = None },
+        Binop
+          ( And,
+            ({ parsed_pos = default_position; ptype = None }, Bool true),
+            ({ parsed_pos = default_position; ptype = None }, Bool true) ) )
+      default_env
+      ( { typed_pos = default_position; ttype = TBool },
+        Binop
+          ( And,
+            ({ typed_pos = default_position; ttype = TBool }, Bool true),
+            ({ typed_pos = default_position; ttype = TBool }, Bool true) ) );
   ]
 
 let suite = List.flatten [ basic_expr_tests ]
