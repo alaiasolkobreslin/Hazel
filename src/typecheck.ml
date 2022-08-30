@@ -52,7 +52,7 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
     let b_typ = typecheck_expr b constr environ in
     if (fst b_typ).ttype = TBool && (fst e1_typ).ttype = (fst e2_typ).ttype 
     then ({typed_pos = parsed.parsed_pos; ttype = (fst e1_typ).ttype}, IfThen(b_typ, e1_typ, e2_typ)) 
-    else failwith "typecheck error"
+    else failwith "typecheck error ifthen"
   |(parsed, Let (pat, e1, e2)) -> 
     let new_pat = parsed_to_typed_pat pat in
     let e1_typed = typecheck_expr e1 constr environ in
@@ -67,7 +67,7 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
       match typed_cases with
       |(e, o, p)::t -> 
         ({typed_pos = parsed.parsed_pos; ttype = (fst e).ttype}, MatchWithWhen (init_typed, typed_cases))
-      |_ -> failwith "typecheck error"
+      |_ -> failwith "typecheck error matchwithwhen"
     end
   |(parsed, Fun (pat, e)) -> failwith "need unification"
   |(parsed, App (f, e)) -> 
@@ -80,8 +80,8 @@ let rec typecheck_expr (exp) (constr) (environ) : typed expr_ann =
       |_ -> failwith "argument type does not match function"
     end
   |(parsed, Binop (b, e1, e2)) -> typecheck_bop (parsed, Binop (b, e1, e2)) constr environ
-  |parsed, Unaop (u, e) -> typecheck_unop e constr environ
-  |_ -> failwith "typecheck error"
+  |parsed, Unaop (u, e) -> typecheck_unop exp constr environ
+  |_ -> failwith "typecheck error typecheck_expr"
 
 and p_match_helper typ lst acc constr env = 
   match lst, acc with
@@ -97,9 +97,9 @@ and p_match_helper typ lst acc constr env =
     let typed_b = typecheck_expr b constr new_environ in
     if ((fst e).ttype = (fst typed_exp).ttype) && ((fst typed_b).ttype = TBool) 
     then p_match_helper typ t ((typed_exp, Some typed_b, new_pat)::acc) constr env
-    else failwith "typecheck error"
+    else failwith "typecheck error p_match_helper case 1"
   |([], _) -> List.rev acc
-  |_ -> failwith "typecheck error"
+  |_ -> failwith "typecheck error p_match_helper"
 
 (*could neaten this up by just passing in the type instead of the expression *)
 and update_environ pat (expr_typ : Ast.types) constr environ = 
@@ -125,18 +125,18 @@ and typecheck_bop (exp) (constr) (environ) =
     begin
       match exp with
       |_, Binop (op, e, e') -> (op, (typecheck_expr e constr environ), (typecheck_expr e' constr environ))
-      |_ -> failwith "Typecheck error"
+      |_ -> failwith "Typecheck error typecheck_bop"
     end
   in
   match bop with
   |Plus |Minus |Mult |Div |Mod |HMult ->
     if (fst e1).ttype = TInt && (fst e2).ttype = TInt
     then ({typed_pos = parsed.parsed_pos; ttype = TInt}, Binop (bop, e1, e2))
-    else failwith "typecheck error"
+    else failwith "typecheck error typecheck_bop case 1"
   |GT |GEQ |LT |LEQ -> 
     if (fst e1).ttype = TInt && (fst e2).ttype = TInt
     then ({typed_pos = parsed.parsed_pos; ttype = TBool}, Binop (bop, e1, e2))
-    else failwith "typecheck error"
+    else failwith "typecheck error typecheck_bop case 2"
   |ConsBop -> 
     begin
       match (fst e1).ttype, (fst e2).ttype with
@@ -146,22 +146,22 @@ and typecheck_bop (exp) (constr) (environ) =
   |Seq -> 
     if (fst e1).ttype = TUnit
     then ({typed_pos = parsed.parsed_pos; ttype = (fst e2).ttype}, Binop (bop, e1, e2))
-    else failwith "typecheck error"
+    else failwith "typecheck error typecheck_bop case 3"
   |EQ |NEQ -> 
     if (fst e1).ttype = (fst e2).ttype
     then ({typed_pos = parsed.parsed_pos; ttype = (fst e1).ttype}, Binop (bop, e1, e2))
-    else failwith "typecheck error"
+    else failwith "typecheck error typecheck_bop case 4"
   |PEQ |PNEQ -> 
     begin
       match (fst e1).ttype, (fst e2).ttype with
       |TRef a, TRef b when a = b -> 
         ({typed_pos = parsed.parsed_pos; ttype = TBool}, Binop (bop, e1, e2))
-      |_ -> failwith "typecheck error"
+      |_ -> failwith "typecheck error typecheck_bop case 5"
     end
   |And |Or -> 
     if (fst e1).ttype = TBool && (fst e2).ttype = TBool
     then ({typed_pos = parsed.parsed_pos; ttype = TBool}, Binop (bop, e1, e2))
-    else failwith "typecheck error"
+    else failwith "typecheck error typecheck_bop case 6"
   |Ass -> 
     (* This is a mess. I'll clean it up later *)
     begin
@@ -171,14 +171,14 @@ and typecheck_bop (exp) (constr) (environ) =
           match List.assoc_opt x environ with
           |Some (TRef a) when (fst e2).ttype = a -> 
             ({typed_pos = parsed.parsed_pos; ttype = TUnit}, Binop (bop, e1, e2))
-          |_ -> failwith "typecheck error"
+          |_ -> failwith "typecheck error typecheck_bop case 7"
         end
-      |_ -> failwith "typecheck error"
+      |_ -> failwith "typecheck error typecheck_bop case 8"
     end
   |Cat -> 
     if (fst e1).ttype = TString && (fst e2).ttype = TString
     then ({typed_pos = parsed.parsed_pos; ttype = TString}, Binop (bop, e1, e2))
-    else failwith "typecheck error"
+    else failwith "typecheck error typecheck_bop case 9"
   |Pipe -> 
     begin
       match (fst e1).ttype, (fst e2).ttype with
@@ -192,18 +192,18 @@ and typecheck_unop exp constr environ =
     begin 
       match exp with
       |_, Unaop (op, ex) -> (op, typecheck_expr ex constr environ)
-      |_ -> failwith "typecheck error"
+      |_ -> failwith "typecheck error typecheck_unop case 1"
     end
   in
   begin 
     match uop with
-    |Not -> if (fst e).ttype = TBool then ({typed_pos = prsed.parsed_pos; ttype = TBool}, Unaop (uop, e)) else failwith "typecheck error"
-    |Neg -> if (fst e).ttype = TInt then ({typed_pos = prsed.parsed_pos; ttype = TInt}, Unaop (uop, e)) else failwith "typecheck error"
+    |Not -> if (fst e).ttype = TBool then ({typed_pos = prsed.parsed_pos; ttype = TBool}, Unaop (uop, e)) else failwith "typecheck error typecheck_unop case 2"
+    |Neg -> if (fst e).ttype = TInt then ({typed_pos = prsed.parsed_pos; ttype = TInt}, Unaop (uop, e)) else failwith "typecheck error typecheck_unop case 3"
     |Ref -> ({typed_pos = prsed.parsed_pos; ttype = TRef (fst e).ttype}, Unaop (uop, e))
     |Deref -> 
       begin match (fst e).ttype with
         |TRef a -> ({typed_pos = prsed.parsed_pos; ttype = a}, Unaop (uop, e))
-        |_ -> failwith "typecheck error"        
+        |_ -> failwith "typecheck error typecheck_unop case 4"        
       end
   end
 
