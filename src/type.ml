@@ -241,9 +241,15 @@ let rec generate_constraints (exp : (env * types) expr_ann) (var_env) (cons) : (
       (fun (((lenv1, typ1), out), b, c) acc -> 
         match b with
         | None -> 
-          (typ1, typ)::(generate_constraints ((lenv1, typ1), out) lenv1 cons)@acc
+          (typ1, typ)
+          ::(generate_constraints ((lenv1, typ1), out) lenv1 cons)
+          @acc
         |Some ((lenvb, typb), b) -> 
-          (typb, TBool)::(typ1, typ)::(generate_constraints ((lenv1, typ1), out) lenv1 cons)@(generate_constraints ((lenvb, typb), b) lenvb cons)@acc
+          (typb, TBool)
+          ::(typ1, typ)
+          ::(generate_constraints ((lenv1, typ1), out) lenv1 cons)
+          @(generate_constraints ((lenvb, typb), b) lenvb cons)
+          @acc
       ) in
     let lst_cons = List.fold_right (fold_helper) lst [] in
     lst_cons@(generate_constraints e lenv cons)
