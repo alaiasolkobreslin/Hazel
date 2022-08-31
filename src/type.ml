@@ -207,53 +207,60 @@ and label_pat pat var_env cons =
 
 (*TODO for Chris - make sure all of the constraints are being generated under the right environments*)
 
-let rec generate_constraints (exp : (env * types) expr_ann) (var_env) (cons) : (types * types) list = 
+let rec generate_constraints (exp : (env * types) expr_ann) var_env cons :
+    (types * types) list =
   let reuse_root e = generate_constraints e var_env cons in
   match exp with
-  | ((_, TUnit), Unit) -> []
-  | ((_, TPlaceholder fresh_var), Nil) -> []
-  | ((_, TInt), Int n) -> []
-  | ((_, TBool), Bool b) -> []
-  | ((_, TString), String s) -> []
-  | ((_, TChar), Char c) -> []
-  | ((_, typ), Var id) -> []
-  | ((lenv, typ), Tuple lst) -> 
-    let lst_cons = (List.fold_right (fun e acc -> (generate_constraints e lenv cons)@acc) lst []) in
-    let binding = List.fold_right (fun ((lenv2, typ), exp) acc -> typ::acc) lst [] in
-    (typ, TProd binding)::lst_cons
-  | ((lenv1, typ), IfThen (((lenv2, btyp), b), ((lenv3, typ1), e1), ((lenv4, typ2), e2))) -> 
-    (typ, typ1)
-    ::(typ2, typ1)
-    ::(btyp, TBool)
-    ::(reuse_root ((lenv2, btyp), b))
-    @(reuse_root ((lenv3, typ1), e1))
-    @(reuse_root ((lenv4, typ2), e2))
-  | ((lenv, typ), Let (pat, e1, ((lenv2, typ2), e2))) -> 
-    (typ, typ2)
-    ::(generate_constraints e1 var_env cons)
-    @(generate_constraints ((lenv2, typ2), e2) lenv2 cons) 
-  | (lenv, typ), LetRec (lst, ((lenv2, typ2), e)) -> 
-    let cum_cons = List.fold_right (fun (pats, e') acc -> (generate_constraints e' lenv cons) @ acc) lst [] in
-    (typ, typ2)
-    ::cum_cons@(generate_constraints ((lenv2, typ2), e) lenv cons)
-  | (lenv, typ), MatchWithWhen (e, lst) -> 
-    let fold_helper = 
-      (fun (((lenv1, typ1), out), b, c) acc -> 
+  | (_, TUnit), Unit -> []
+  | (_, TPlaceholder fresh_var), Nil -> []
+  | (_, TInt), Int n -> []
+  | (_, TBool), Bool b -> []
+  | (_, TString), String s -> []
+  | (_, TChar), Char c -> []
+  | (_, typ), Var id -> []
+  | (lenv, typ), Tuple lst ->
+      let lst_cons =
+        List.fold_right
+          (fun e acc -> generate_constraints e lenv cons @ acc)
+          lst []
+      in
+      let binding =
+        List.fold_right (fun ((lenv2, typ), exp) acc -> typ :: acc) lst []
+      in
+      (typ, TProd binding) :: lst_cons
+  | ( (lenv1, typ),
+      IfThen (((lenv2, btyp), b), ((lenv3, typ1), e1), ((lenv4, typ2), e2)) ) ->
+      (typ, typ1) :: (typ2, typ1) :: (btyp, TBool)
+      :: reuse_root ((lenv2, btyp), b)
+      @ reuse_root ((lenv3, typ1), e1)
+      @ reuse_root ((lenv4, typ2), e2)
+  | (lenv, typ), Let (pat, e1, ((lenv2, typ2), e2)) ->
+      ((typ, typ2) :: generate_constraints e1 var_env cons)
+      @ generate_constraints ((lenv2, typ2), e2) lenv2 cons
+  | (lenv, typ), LetRec (lst, ((lenv2, typ2), e)) ->
+      let cum_cons =
+        List.fold_right
+          (fun (pats, e') acc -> generate_constraints e' lenv cons @ acc)
+          lst []
+      in
+      ((typ, typ2) :: cum_cons)
+      @ generate_constraints ((lenv2, typ2), e) lenv cons
+  | (lenv, typ), MatchWithWhen (e, lst) ->
+      let fold_helper (((lenv1, typ1), out), b, c) acc =
         match b with
-        | None -> 
-          (typ1, typ)
-          ::(generate_constraints ((lenv1, typ1), out) lenv1 cons)
-          @acc
-        |Some ((lenvb, typb), b) -> 
-          (typb, TBool)
-          ::(typ1, typ)
-          ::(generate_constraints ((lenv1, typ1), out) lenv1 cons)
-          @(generate_constraints ((lenvb, typb), b) lenvb cons)
-          @acc
-      ) in
-    let lst_cons = List.fold_right (fold_helper) lst [] in
-    lst_cons@(generate_constraints e lenv cons)
-  |_ -> failwith "ah fuck"
+        | None ->
+            ((typ1, typ) :: generate_constraints ((lenv1, typ1), out) lenv1 cons)
+            @ acc
+        | Some ((lenvb, typb), b) ->
+            (typb, TBool) :: (typ1, typ)
+            :: generate_constraints ((lenv1, typ1), out) lenv1 cons
+            @ generate_constraints ((lenvb, typb), b) lenvb cons
+            @ acc
+      in
+      let lst_cons = List.fold_right fold_helper lst [] in
+      lst_cons @ generate_constraints e lenv cons
+  | _ -> failwith "ah fuck"
+
 let type_expr expr var_env typ_env =
   let pos, e = expr in
   match e with
