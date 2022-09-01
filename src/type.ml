@@ -1,4 +1,5 @@
 open Ast
+open Util
 
 exception TypingError of (Lexing.position * string)
 
@@ -40,14 +41,17 @@ let rec unify (t1 : types) (t2 : types) : unit =
       r := t
   | _ -> failwith "cannot unify"
 
-let fresh_var = failwith "unimplemented"
+let fresh =
+  let source = Fresh.make (HashSet.make ()) in
+  (* fun () -> Subst (ref (TVar (Fresh.next source))) *)
+  fun () -> Fresh.next source
 
 let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
     (env * types) expr_ann =
   let pos, e = expr in
   match e with
   | Unit -> ((var_env, TUnit), Unit)
-  | Nil -> ((var_env, TPlaceholder fresh_var), Nil)
+  | Nil -> ((var_env, TPlaceholder (fresh ())), Nil)
   | Int n -> ((var_env, TInt), Int n)
   | Bool b -> ((var_env, TBool), Bool b)
   | String s -> ((var_env, TString), String s)
@@ -57,10 +61,10 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
       | Some typ -> ((var_env, typ), Var id)
       | None -> failwith "Variable referenced before defined")
   | Tuple lst ->
-      ( (var_env, TPlaceholder fresh_var),
+      ( (var_env, TPlaceholder (fresh ())),
         Tuple (List.map (fun e -> label_ast e var_env cons) lst) )
   | IfThen (b, e1, e2) ->
-      ( (var_env, TPlaceholder fresh_var),
+      ( (var_env, TPlaceholder (fresh ())),
         IfThen
           ( label_ast b var_env cons,
             label_ast e1 var_env cons,
@@ -69,39 +73,39 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
       let _, pat' = pat in
       match pat' with
       | PUnit ->
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
               ( ((var_env, TUnit), PUnit),
                 label_ast e1 var_env cons,
                 label_ast e2 var_env cons ) )
       | PWild ->
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder fresh_var), PWild),
+              ( ((var_env, TPlaceholder (fresh ())), PWild),
                 label_ast e1 var_env cons,
                 label_ast e2 var_env cons ) )
       | PBool b ->
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
               ( ((var_env, TBool), PBool b),
                 label_ast e1 var_env cons,
                 label_ast e2 var_env cons ) )
       | PInt n ->
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
               ( ((var_env, TInt), PInt n),
                 label_ast e1 var_env cons,
                 label_ast e2 var_env cons ) )
       | PString s ->
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
               ( ((var_env, TString), PString s),
                 label_ast e1 var_env cons,
                 label_ast e2 var_env cons ) )
       | PVar s ->
-          let name = TPlaceholder fresh_var in
+          let name = TPlaceholder (fresh ()) in
           let new_env = (s, name) :: List.remove_assoc s var_env in
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
               ( ((var_env, name), PVar s),
                 label_ast e1 var_env cons,
@@ -110,29 +114,29 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
           let new_env = label_pat pat var_env cons in
           (* I'm a little unsure about the second fresh variable placeholder, but I think we can take care of it in
              unification *)
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder fresh_var), PTup lst),
+              ( ((var_env, TPlaceholder (fresh ())), PTup lst),
                 label_ast e1 var_env cons,
                 label_ast e2 new_env cons ) )
       | PSum (con, pat'') ->
           let new_env = label_pat pat var_env cons in
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder fresh_var), PSum (con, pat'')),
+              ( ((var_env, TPlaceholder (fresh ())), PSum (con, pat'')),
                 label_ast e1 var_env cons,
                 label_ast e2 new_env cons ) )
       | PNil ->
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder fresh_var), PNil),
+              ( ((var_env, TPlaceholder (fresh ())), PNil),
                 label_ast e1 var_env cons,
                 label_ast e2 var_env cons ) )
       | PCons (pat1, pat2) ->
           let new_env = label_pat pat var_env cons in
-          ( (var_env, TPlaceholder fresh_var),
+          ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder fresh_var), PCons (pat1, pat2)),
+              ( ((var_env, TPlaceholder (fresh ())), PCons (pat1, pat2)),
                 label_ast e1 var_env cons,
                 label_ast e2 new_env cons ) ))
   | LetRec (lst, exp) ->
@@ -142,7 +146,7 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
       let new_lst =
         List.map (fun (a, b) -> (a, label_ast b cum_env cons)) lst
       in
-      ( (cum_env, TPlaceholder fresh_var),
+      ( (cum_env, TPlaceholder (fresh ())),
         LetRec (new_lst, label_ast exp cum_env cons) )
   | MatchWithWhen (exp, lst) ->
       let new_exp = label_ast exp var_env cons in
@@ -158,20 +162,20 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
                 (label_ast a new_env cons, Some (label_ast e new_env cons), c))
           lst
       in
-      ((var_env, TPlaceholder fresh_var), MatchWithWhen (new_exp, new_lst))
+      ((var_env, TPlaceholder (fresh ())), MatchWithWhen (new_exp, new_lst))
   | Fun (pat, exp) ->
       let new_env = label_pat pat var_env cons in
-      ((var_env, TPlaceholder fresh_var), Fun (pat, label_ast exp new_env cons))
+      ((var_env, TPlaceholder (fresh ())), Fun (pat, label_ast exp new_env cons))
   | App (e1, e2) ->
-      ( (var_env, TPlaceholder fresh_var),
+      ( (var_env, TPlaceholder (fresh ())),
         App (label_ast e1 var_env cons, label_ast e2 var_env cons) )
   | Binop (op, e1, e2) ->
-      ( (var_env, TPlaceholder fresh_var),
+      ( (var_env, TPlaceholder (fresh ())),
         Binop (op, label_ast e1 var_env cons, label_ast e2 var_env cons) )
   | Unaop (op, e) ->
-      ((var_env, TPlaceholder fresh_var), Unaop (op, label_ast e var_env cons))
+      ((var_env, TPlaceholder (fresh ())), Unaop (op, label_ast e var_env cons))
   | Cons (e1, e2) ->
-      ( (var_env, TPlaceholder fresh_var),
+      ( (var_env, TPlaceholder (fresh ())),
         Cons (label_ast e1 var_env cons, label_ast e2 var_env cons) )
   | Constructor (str, exp) -> (
       match List.assoc_opt str cons with
@@ -179,7 +183,7 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
       | Some t ->
           ((var_env, fst t), Constructor (str, label_ast exp var_env cons)))
   | Record lst ->
-      ( (var_env, TPlaceholder fresh_var),
+      ( (var_env, TPlaceholder (fresh ())),
         Record (List.map (fun (a, b) -> (a, label_ast b var_env cons)) lst) )
 
 and label_pat pat var_env cons =
@@ -191,7 +195,7 @@ and label_pat pat var_env cons =
   | PInt n -> var_env
   | PString s -> var_env
   | PVar s ->
-      let name = TPlaceholder fresh_var in
+      let name = TPlaceholder (fresh ()) in
       let new_env = (s, name) :: List.remove_assoc s var_env in
       new_env
   | PTup lst ->
@@ -212,7 +216,7 @@ let rec generate_constraints (exp : (env * types) expr_ann) var_env cons :
   let reuse_root e = generate_constraints e var_env cons in
   match exp with
   | (_, TUnit), Unit -> []
-  | (_, TPlaceholder fresh_var), Nil -> []
+  | (_, TPlaceholder _), Nil -> []
   | (_, TInt), Int n -> []
   | (_, TBool), Bool b -> []
   | (_, TString), String s -> []
