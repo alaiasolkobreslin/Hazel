@@ -291,7 +291,7 @@ let rec generate_constraints (exp : (env * types) expr_ann) var_env cons :
       @ generate_constraints ((lenv2, typ2), e2) lenv2 cons
   | _ -> failwith "ah fuck"
 
-let type_expr expr var_env typ_env =
+let rec type_expr expr var_env typ_env =
   let pos, e = expr in
   match e with
   | Unit -> TUnit
@@ -304,6 +304,47 @@ let type_expr expr var_env typ_env =
       match lookup var_env id with
       | Some typ -> typ
       | None -> failwith "Need fresh variable using TyVarVar here")
+  | Binop (bop, e1, e2) -> type_bop bop e1 e2 var_env typ_env
+  | Unaop (unop, e) -> type_unop unop e var_env typ_env
   | _ -> failwith "unimplemented"
+
+and type_bop bop e1 e2 var_env typ_env =
+  let t1 = type_expr e1 var_env typ_env in
+  let t2 = type_expr e2 var_env typ_env in
+  match bop with
+  | Plus | Minus | Mult | Div | Mod | HMult ->
+      let _ = unify t1 TInt in
+      let _ = unify t2 TInt in
+      TInt
+  | GT | GEQ | LT | LEQ ->
+      let _ = unify t1 TInt in
+      let _ = unify t2 TInt in
+      TBool
+  | And | Or ->
+      let _ = unify t1 TBool in
+      let _ = unify t2 TBool in
+      TBool
+  | Seq ->
+      let _ = unify t1 TUnit in
+      t2
+  | Cat ->
+      let _ = unify t1 TString in
+      let _ = unify t2 TString in
+      TString
+  | EQ | NEQ | PEQ | PNEQ -> failwith "unimplemented"
+  | Pipe -> failwith "unimplemented"
+  | Ass -> failwith "unimplemented"
+  | ConsBop -> failwith "unimplemented"
+
+and type_unop unop e var_env typ_env =
+  let t = type_expr e var_env typ_env in
+  match unop with
+  | Not ->
+      let _ = unify t TBool in
+      TBool
+  | Neg ->
+      let _ = unify t TInt in
+      TInt
+  | Ref | Deref -> failwith "unimplemented"
 
 let type_prog parsed_ast = failwith "unimplemented"
