@@ -306,6 +306,13 @@ let rec type_expr expr var_env typ_env =
       | None -> failwith "Need fresh variable using TyVarVar here")
   | Binop (bop, e1, e2) -> type_bop bop e1 e2 var_env typ_env
   | Unaop (unop, e) -> type_unop unop e var_env typ_env
+  | IfThen (e1, e2, e3) ->
+      let t1 = type_expr e1 var_env typ_env in
+      let t2 = type_expr e2 var_env typ_env in
+      let t3 = type_expr e3 var_env typ_env in
+      let _ = unify t1 TBool in
+      let _ = unify t2 t3 in
+      t2
   | _ -> failwith "unimplemented"
 
 and type_bop bop e1 e2 var_env typ_env =
@@ -331,9 +338,11 @@ and type_bop bop e1 e2 var_env typ_env =
       let _ = unify t1 TString in
       let _ = unify t2 TString in
       TString
+  | Ass ->
+      let _ = unify t1 (TRef t2) in
+      TUnit
   | EQ | NEQ | PEQ | PNEQ -> failwith "unimplemented"
   | Pipe -> failwith "unimplemented"
-  | Ass -> failwith "unimplemented"
   | ConsBop -> failwith "unimplemented"
 
 and type_unop unop e var_env typ_env =
@@ -345,6 +354,11 @@ and type_unop unop e var_env typ_env =
   | Neg ->
       let _ = unify t TInt in
       TInt
-  | Ref | Deref -> failwith "unimplemented"
+  | Ref -> TRef t
+  | Deref ->
+      (* Is this correct? *)
+      let fr = fresh () in
+      let _ = unify t (TRef (TPlaceholder fr)) in
+      failwith "unimplemented"
 
 let type_prog parsed_ast = failwith "unimplemented"
