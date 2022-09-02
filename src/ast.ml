@@ -428,7 +428,7 @@ and types_to_sexpr = function
   | TConstraint (pat, expr) ->
       SList [ SNode "constraint"; rpat_to_sexpr pat; rexpr_to_sexpr expr ]
   | TFun (t1, t2) -> SList [ types_to_sexpr t1; SNode "->"; types_to_sexpr t2 ]
-  | _ -> failwith "unimplemented"
+  | Subst t -> SList [ SNode "Subst"; types_to_sexpr !t ]
 
 let let_defn_to_sexpr = function
   | _, pat, e ->
