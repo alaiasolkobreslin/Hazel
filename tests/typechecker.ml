@@ -99,6 +99,22 @@ let basic_expr_tests =
           ( And,
             ({ typed_pos = default_position; ttype = TBool }, Bool true),
             ({ typed_pos = default_position; ttype = TBool }, Bool true) ) );
+    make_typed_expr_test "unit applied to fn is unit"
+      ( { parsed_pos = default_position; ptype = None },
+        App
+          ( ( { parsed_pos = default_position; ptype = None },
+              Fun
+                ( ({ parsed_pos = default_position; ptype = None }, PUnit),
+                  ({ parsed_pos = default_position; ptype = None }, Unit) ) ),
+            ({ parsed_pos = default_position; ptype = None }, Unit) ) )
+      default_env
+      ( { typed_pos = default_position; ttype = TUnit },
+        App
+          ( ( { typed_pos = default_position; ttype = TFun (TUnit, TUnit) },
+              Fun
+                ( ({ typed_pos = default_position; ttype = TUnit }, PUnit),
+                  ({ typed_pos = default_position; ttype = TUnit }, Unit) ) ),
+            ({ typed_pos = default_position; ttype = TUnit }, Unit) ) );
   ]
 
 let expr_exn_tests =
