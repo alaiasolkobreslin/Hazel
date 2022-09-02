@@ -295,11 +295,14 @@ let rec type_expr expr var_env typ_env =
   let pos, e = expr in
   match e with
   | Unit -> TUnit
-  | Nil -> failwith "unimplemented" (* TCons *)
+  | Nil -> TCons (TPlaceholder (fresh ()))
   | Int _ -> TInt
   | Bool _ -> TBool
   | String _ -> TString
   | Char _ -> TChar
+  | Tuple tup ->
+      let tup_types = List.map (fun elt -> type_expr elt var_env typ_env) tup in
+      TProd tup_types
   | Var id -> (
       match lookup var_env id with
       | Some typ -> typ
@@ -313,6 +316,12 @@ let rec type_expr expr var_env typ_env =
       let _ = unify t1 TBool in
       let _ = unify t2 t3 in
       t2
+  | App (e1, e2) ->
+      let t1 = type_expr e1 var_env typ_env in
+      let t2 = type_expr e2 var_env typ_env in
+      let fr = TPlaceholder (fresh ()) in
+      let _ = unify t1 (TFun (t2, fr)) in
+      fr
   | _ -> failwith "unimplemented"
 
 and type_bop bop e1 e2 var_env typ_env =
@@ -341,8 +350,13 @@ and type_bop bop e1 e2 var_env typ_env =
   | Ass ->
       let _ = unify t1 (TRef t2) in
       TUnit
-  | EQ | NEQ | PEQ | PNEQ -> failwith "unimplemented"
-  | Pipe -> failwith "unimplemented"
+  | EQ | NEQ | PEQ | PNEQ ->
+      let _ = unify t1 t2 in
+      TBool
+  | Pipe ->
+      let fr = TPlaceholder (fresh ()) in
+      let _ = unify t2 (TFun (t1, fr)) in
+      fr
   | ConsBop -> failwith "unimplemented"
 
 and type_unop unop e var_env typ_env =
@@ -356,9 +370,8 @@ and type_unop unop e var_env typ_env =
       TInt
   | Ref -> TRef t
   | Deref ->
-      (* Is this correct? *)
-      let fr = fresh () in
-      let _ = unify t (TRef (TPlaceholder fr)) in
-      failwith "unimplemented"
+      let fr = TPlaceholder (fresh ()) in
+      let _ = unify t (TRef fr) in
+      fr
 
 let type_prog parsed_ast = failwith "unimplemented"
