@@ -9,8 +9,9 @@ type id = string
 type checked = Resolved | Unresolved of types
 type env = (id * types) list
 type constructor = string
-type constructors = (constructor * (types * types)) list
-(* constructor is the name, first type is the variant type, second type is the container type*)
+type constructors = (constructor * (types * types option)) list
+(* constructor is the name, first type is the variant type, second type is the container type
+   i.e. type example = bruh of Int, constructor is first, int is second, example is first*)
 
 let lookup env key =
   match List.find_opt (fun (k, _) -> k = key) env with
@@ -207,6 +208,22 @@ and label_pat pat var_env cons =
         (fun env tern -> label_pat tern env cons)
         var_env [ pat1; pat2 ]
 
+and pat_labler pat var_env cons =
+  let _, pat' = pat in
+  match pat' with
+  | PUnit -> TUnit
+  | PWild -> TPlaceholder (fresh ())
+  | PBool b -> TBool
+  | PInt n -> TInt
+  | PString s -> TString
+  | PVar s -> var_env s
+  | PTup lst -> TProd (List.map (fun p -> pat_labler p var_env cons) lst)
+  | PSum (con, pat'') ->
+      let var_typ = List.assoc con cons in
+      fst var_typ
+  | PNil -> TPlaceholder (fresh ())
+  | PCons (pat1, pat2) -> TCons (pat_labler pat var_env cons)
+
 (* Generates set of constraints for substitution for unification. Substitution substitutes first element out for the second *)
 
 (*TODO for Chris - make sure all of the constraints are being generated under the right environments*)
@@ -238,8 +255,10 @@ let rec generate_constraints (exp : (env * types) expr_ann) var_env cons :
       :: reuse_root ((lenv2, btyp), b)
       @ reuse_root ((lenv3, typ1), e1)
       @ reuse_root ((lenv4, typ2), e2)
-  | (lenv, typ), Let (pat, e1, ((lenv2, typ2), e2)) ->
-      ((typ, typ2) :: generate_constraints e1 var_env cons)
+  | ( (lenv, typ),
+      Let (((lenvp, typp), pat), ((lenv1, typ1), e1), ((lenv2, typ2), e2)) ) ->
+      (typp, typ1) :: (typ, typ2)
+      :: generate_constraints ((lenv1, typ1), e1) var_env cons
       @ generate_constraints ((lenv2, typ2), e2) lenv2 cons
   | (lenv, typ), LetRec (lst, ((lenv2, typ2), e)) ->
       let cum_cons =
@@ -263,6 +282,13 @@ let rec generate_constraints (exp : (env * types) expr_ann) var_env cons :
       in
       let lst_cons = List.fold_right fold_helper lst [] in
       lst_cons @ generate_constraints e lenv cons
+  | (lenv, typ), Fun (((lenvp, typp), pat), ((lenv2, typ2), e2)) ->
+      (typ, TFun (typp, typ2))
+      :: generate_constraints ((lenv2, typ2), e2) lenv2 cons
+  | (lenv, typ), App (((lenv1, typ1), e1), ((lenv2, typ2), e2)) ->
+      (typ1, TFun (typ2, typ))
+      :: generate_constraints ((lenv1, typ1), e1) lenv1 cons
+      @ generate_constraints ((lenv2, typ2), e2) lenv2 cons
   | _ -> failwith "ah fuck"
 
 let type_expr expr var_env typ_env =
