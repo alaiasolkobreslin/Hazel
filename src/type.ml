@@ -357,7 +357,9 @@ and type_bop bop e1 e2 var_env typ_env =
       let fr = TPlaceholder (fresh ()) in
       let _ = unify t2 (TFun (t1, fr)) in
       fr
-  | ConsBop -> failwith "unimplemented"
+  | ConsBop ->
+      let _ = unify t2 (TCons t1) in
+      TCons t1
 
 and type_unop unop e var_env typ_env =
   let t = type_expr e var_env typ_env in
