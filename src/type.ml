@@ -18,16 +18,50 @@ let lookup env key =
   | Some (_, v) -> Some v
   | None -> None
 
-(* collapse all Subst's except Vars *)
+(* collapse all Subst's *)
+let rec collapse (t : types) : types =
+  match t with
+  | TInt | TBool | TVar _ | TPlaceholder _ | TString | TChar | TUnit
+  | TConstraint _ ->
+      t
+  | TFun (t1, t2) -> TFun (collapse t1, collapse t2)
+  | TProd lst -> TProd (List.map collapse lst)
+  | TCons typ -> TCons (collapse typ)
+  | TRef typ -> TRef (collapse typ)
+  | TRecord lst -> TRecord (List.map (fun (s, typ) -> (s, collapse typ)) lst)
+  | TSum lst ->
+      TSum
+        (List.map
+           (fun (s, typ_opt) ->
+             match typ_opt with
+             | Some typ -> (s, Some (collapse typ))
+             | None -> (s, None))
+           lst)
+  | Subst { contents = t } -> collapse t
 
+(* collapse all Subst's except Vars *)
 let rec resolve (t : types) : types =
   match t with
-  | TInt | TBool | TVar _ | Subst { contents = TVar _ } -> t
+  | TInt | TBool | TVar _
+  | Subst { contents = TVar _ }
+  | TPlaceholder _ | TString | TChar | TUnit | TConstraint _ ->
+      t
   | TFun (t1, t2) -> TFun (resolve t1, resolve t2)
+  | TProd lst -> TProd (List.map resolve lst)
+  | TCons typ -> TCons (resolve typ)
+  | TRef typ -> TRef (resolve typ)
+  | TRecord lst -> TRecord (List.map (fun (s, typ) -> (s, resolve typ)) lst)
+  | TSum lst ->
+      TSum
+        (List.map
+           (fun (s, typ_opt) ->
+             match typ_opt with
+             | Some typ -> (s, Some (resolve typ))
+             | None -> (s, None))
+           lst)
   | Subst ({ contents = t } as r) ->
       r := resolve t;
       !r
-  | _ -> failwith "unimplemented"
 
 let rec unify (t1 : types) (t2 : types) : unit =
   match (resolve t1, resolve t2) with
