@@ -122,78 +122,76 @@ let rec type_expr (expr : parsed expr_ann) : types =
     | String _ -> TString
     | Char _ -> TChar
     | Tuple tup ->
-        let tup_types = List.map (fun elt -> type_expr elt) tup in
+        let tup_types = List.map (check gamma) tup in
         TProd tup_types
     | Var id -> instantiate (lookup id gamma)
-    | Binop (bop, e1, e2) -> type_bop bop e1 e2
-    | Unaop (unop, e) -> type_unop unop e
+    | Binop (bop, e1, e2) -> check_bop gamma bop e1 e2
+    | Unaop (unop, e) -> check_unop gamma unop e
     | IfThen (e1, e2, e3) ->
-        let t1 = type_expr e1 in
-        let t2 = type_expr e2 in
-        let t3 = type_expr e3 in
+        let t1 = check gamma e1 in
+        let t2 = check gamma e2 in
+        let t3 = check gamma e3 in
         let _ = unify t1 TBool in
         let _ = unify t2 t3 in
         t2
     | App (e1, e2) ->
-        let t1 = type_expr e1 in
-        let t2 = type_expr e2 in
+        let t1 = check gamma e1 in
+        let t2 = check gamma e2 in
         let fr = fresh () in
         let _ = unify t1 (TFun (t2, fr)) in
         fr
     | _ -> failwith "unimplemented"
+  and check_bop (gamma : env) bop e1 e2 =
+    let t1 = check gamma e1 in
+    let t2 = check gamma e2 in
+    match bop with
+    | Plus | Minus | Mult | Div | Mod | HMult ->
+        let _ = unify t1 TInt in
+        let _ = unify t2 TInt in
+        TInt
+    | GT | GEQ | LT | LEQ ->
+        let _ = unify t1 TInt in
+        let _ = unify t2 TInt in
+        TBool
+    | And | Or ->
+        let _ = unify t1 TBool in
+        let _ = unify t2 TBool in
+        TBool
+    | Seq ->
+        let _ = unify t1 TUnit in
+        t2
+    | Cat ->
+        let _ = unify t1 TString in
+        let _ = unify t2 TString in
+        TString
+    | Ass ->
+        let _ = unify t1 (TRef t2) in
+        TUnit
+    | EQ | NEQ | PEQ | PNEQ ->
+        let _ = unify t1 t2 in
+        TBool
+    | Pipe ->
+        let fr = fresh () in
+        let _ = unify t2 (TFun (t1, fr)) in
+        fr
+    | ConsBop ->
+        let _ = unify t2 (TCons t1) in
+        TCons t1
+  and check_unop gamma unop e =
+    let t = check gamma e in
+    match unop with
+    | Not ->
+        let _ = unify t TBool in
+        TBool
+    | Neg ->
+        let _ = unify t TInt in
+        TInt
+    | Ref -> TRef t
+    | Deref ->
+        let fr = fresh () in
+        let _ = unify t (TRef fr) in
+        fr
   in
   collapse (check [] expr)
-
-and type_bop bop e1 e2 =
-  let t1 = type_expr e1 in
-  let t2 = type_expr e2 in
-  match bop with
-  | Plus | Minus | Mult | Div | Mod | HMult ->
-      let _ = unify t1 TInt in
-      let _ = unify t2 TInt in
-      TInt
-  | GT | GEQ | LT | LEQ ->
-      let _ = unify t1 TInt in
-      let _ = unify t2 TInt in
-      TBool
-  | And | Or ->
-      let _ = unify t1 TBool in
-      let _ = unify t2 TBool in
-      TBool
-  | Seq ->
-      let _ = unify t1 TUnit in
-      t2
-  | Cat ->
-      let _ = unify t1 TString in
-      let _ = unify t2 TString in
-      TString
-  | Ass ->
-      let _ = unify t1 (TRef t2) in
-      TUnit
-  | EQ | NEQ | PEQ | PNEQ ->
-      let _ = unify t1 t2 in
-      TBool
-  | Pipe ->
-      let fr = fresh () in
-      let _ = unify t2 (TFun (t1, fr)) in
-      fr
-  | ConsBop ->
-      let _ = unify t2 (TCons t1) in
-      TCons t1
-
-and type_unop unop e =
-  let t = type_expr e in
-  match unop with
-  | Not ->
-      let _ = unify t TBool in
-      TBool
-  | Neg ->
-      let _ = unify t TInt in
-      TInt
-  | Ref -> TRef t
-  | Deref ->
-      let fr = fresh () in
-      let _ = unify t (TRef fr) in
-      fr
 
 let type_prog parsed_ast = failwith "unimplemented"
