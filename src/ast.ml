@@ -22,12 +22,12 @@ and 'a expr =
   | Let of ('a pattern_ann * 'a expr_ann * 'a expr_ann)
   | LetRec of (('a pattern_ann * 'a expr_ann) list * 'a expr_ann)
   | MatchWithWhen of
-      ('a expr_ann * ('a expr_ann * 'a expr_ann option * 'a pattern_ann) list) (*extra expr for when *)
+      ('a expr_ann * ('a expr_ann * 'a expr_ann option * 'a pattern_ann) list)
+    (*extra expr for when *)
   | Fun of ('a pattern_ann * 'a expr_ann)
   | App of ('a expr_ann * 'a expr_ann)
   | Binop of (bop * 'a expr_ann * 'a expr_ann)
   | Unaop of (unop * 'a expr_ann)
-  | Cons of ('a expr_ann * 'a expr_ann)
   | Constructor of (string * 'a expr_ann)
   | Record of (string * 'a expr_ann) list
 
@@ -111,7 +111,8 @@ and types =
   | TString
   | TChar
   | TProd of types list (* tuples *)
-  | TSum of (string * types option) list (* variants - first string removed so we can combine with alias *)
+  | TSum of (string * types option) list
+    (* variants - first string removed so we can combine with alias *)
   | TCons of types
   | TUnit
   | TRef of types
@@ -271,9 +272,9 @@ and expr_to_sexpr = function
           e2 |> snd |> expr_to_sexpr;
         ]
   | Unaop (uop, e) -> SList [ uop_to_sexpr uop; e |> snd |> expr_to_sexpr ]
-  | Cons (e1, e2) ->
+  (* | Cons (e1, e2) ->
       SList
-        [ SNode "::"; e1 |> snd |> expr_to_sexpr; e2 |> snd |> expr_to_sexpr ]
+        [ SNode "::"; e1 |> snd |> expr_to_sexpr; e2 |> snd |> expr_to_sexpr ] *)
   | Constructor (str, e) -> SList [ SNode str; e |> snd |> expr_to_sexpr ]
   | Record lst ->
       SList

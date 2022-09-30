@@ -289,7 +289,104 @@ let rec generate_constraints (exp : (env * types) expr_ann) var_env cons :
       (typ1, TFun (typ2, typ))
       :: generate_constraints ((lenv1, typ1), e1) lenv1 cons
       @ generate_constraints ((lenv2, typ2), e2) lenv2 cons
+  | (lenv, typ), Binop (bop, e1, e2) -> bop_helper typ bop e1 e2 lenv cons
+  | (lenv, typ), Unaop (op, e) -> unaop_helper typ op e lenv cons
+  | (lenv, typ), Constructor (iden, ((lenv1, typ1), e1)) -> (
+      match List.assoc_opt iden cons with
+      | None -> failwith "Constructor not found"
+      | Some (t1, Some t2) ->
+          (typ, t1) :: (typ1, t2)
+          :: generate_constraints ((lenv1, typ1), e1) lenv1 cons
+      | Some (t1, None) -> failwith "We need to fix the AST")
+  | (lenv, typ), Record lst ->
+      let cons_lst =
+        List.map
+          (fun (c, ((lenv, typ), e)) ->
+            (c, typ, generate_constraints ((lenv, typ), e) lenv cons))
+          lst
+      in
+      let reco, cum_cons =
+        List.fold_left
+          (fun (reco, con) (c, typ, cons) -> ((c, typ) :: reco, cons @ con))
+          ([], []) cons_lst
+      in
+      (typ, TRecord reco) :: cum_cons
   | _ -> failwith "ah fuck"
+
+and unaop_helper tvar uop e var_env cons =
+  let (lenv, typ), e' = e in
+  match uop with
+  | Not -> (tvar, TBool) :: (typ, TBool) :: generate_constraints e lenv cons
+  | Neg -> (tvar, TInt) :: (typ, TInt) :: generate_constraints e lenv cons
+  | Ref -> (tvar, TRef typ) :: generate_constraints e lenv cons
+  | Deref -> (typ, TRef tvar) :: generate_constraints e lenv cons
+
+and bop_helper tvar bop e1 e2 var_env cons =
+  let (lenv1, typ1), e1' = e1 in
+  let (lenv2, typ2), e2' = e2 in
+  match bop with
+  | Plus | Minus | Mult | Div | Mod | HMult ->
+      (tvar, TInt) :: (typ1, TInt) :: (typ2, TInt)
+      :: generate_constraints e1 lenv1 cons
+      @ generate_constraints e2 lenv2 cons
+  | GT | GEQ | LT | LEQ ->
+      (tvar, TBool) :: (typ1, TInt) :: (typ2, TInt)
+      :: generate_constraints e1 lenv1 cons
+      @ generate_constraints e2 lenv2 cons
+  | And | Or ->
+      (tvar, TBool) :: (typ1, TBool) :: (typ2, TBool)
+      :: generate_constraints e1 lenv1 cons
+      @ generate_constraints e2 lenv2 cons
+  | Seq ->
+      ((tvar, typ2) :: (typ1, TUnit) :: generate_constraints e1 lenv1 cons)
+      @ generate_constraints e2 lenv2 cons
+  | Cat ->
+      (tvar, TString) :: (typ1, TString) :: (typ2, TString)
+      :: generate_constraints e1 lenv1 cons
+      @ generate_constraints e2 lenv2 cons
+  | Ass ->
+      ((tvar, TUnit) :: (typ1, TRef typ2) :: generate_constraints e1 lenv1 cons)
+      @ generate_constraints e2 lenv2 cons
+  | EQ | NEQ | PEQ | PNEQ ->
+      ((tvar, TBool) :: (typ1, typ2) :: generate_constraints e1 lenv1 cons)
+      @ generate_constraints e2 lenv2 cons
+  | Pipe ->
+      ((typ1, TFun (typ2, tvar)) :: generate_constraints e1 lenv1 cons)
+      @ generate_constraints e2 lenv2 cons
+  | ConsBop ->
+      ((typ2, TCons typ1) :: generate_constraints e1 lenv1 cons)
+      @ generate_constraints e2 lenv2 cons
+
+(* Returns true iff variable x appears in typ*)
+let rec contains_var x typ =
+  match typ with
+  | TPlaceholder y -> y = x
+  | TBool -> false
+  | TInt -> false
+  | TString -> false
+  | TChar -> false
+  | TProd lst -> List.fold_left (fun b ty -> contains_var x typ || b) false lst
+  | TSum lst ->
+      failwith "dammit this is annoying"
+      (* variants - first string removed so we can combine with alias *)
+  | TCons ty -> contains_var x ty
+  | TUnit -> false
+  | TRef ty -> contains_var x ty
+  | TRecord lst -> failwith "hard case, come back later"
+  | TVar y -> y = x
+  | TConstraint _ -> false
+  | TFun (ty1, ty2) -> contains_var x ty1 || contains_var x ty2
+  | Subst _ -> failwith "???"
+
+let rec unify_constraints lst =
+  let find_help (x, y) =
+    match x with
+    | TVar s | TPlaceholder s -> not (contains_var s y)
+    | _ -> false
+  in
+  let find_subst = List.find_opt find_help lst in
+
+  failwith "to be implemented"
 
 let rec type_expr expr var_env typ_env =
   let pos, e = expr in
