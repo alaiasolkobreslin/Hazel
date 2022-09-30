@@ -61,9 +61,16 @@ let rec resolve (t : types) : types =
       !r
 
 let rec unify (t1 : types) (t2 : types) : unit =
+  print_endline "got here";
   match (resolve t1, resolve t2) with
   | TInt, TInt -> ()
   | TBool, TBool -> ()
+  | TUnit, TUnit -> ()
+  | TChar, TChar -> ()
+  | TString, TString -> ()
+  | TProd t1, TProd t2 -> List.iter2 unify t1 t2
+  | TCons t1, TCons t2 -> unify t1 t2
+  | TRef t1, TRef t2 -> unify t1 t2
   | TFun (s1, t1), TFun (s2, t2) ->
       unify s1 s2;
       unify t1 t2
@@ -71,6 +78,7 @@ let rec unify (t1 : types) (t2 : types) : unit =
   | Subst ({ contents = TVar a } as r), t
   | t, Subst ({ contents = TVar a } as r) ->
       r := t
+  (* TODO: finish rest of cases *)
   | _ -> failwith "cannot unify"
 
 let fresh =
@@ -91,6 +99,9 @@ let instantiate ((vars, t) : schema) : types =
     | TCons typ -> TCons (subst s typ)
     | TRef typ -> TRef (subst s typ)
     | TPlaceholder str -> TPlaceholder str
+    (* I think these next two are correct? Double check *)
+    | TVar str -> TVar str
+    | TConstraint x -> TConstraint x
     | TSum typs ->
         TSum
           (List.map
@@ -105,14 +116,12 @@ let instantiate ((vars, t) : schema) : types =
     | Subst { contents = TVar a } -> (
         try Subst (ref (List.assoc a s)) with Not_found -> t)
     | Subst { contents = t } -> subst s t
-    | TConstraint x -> failwith "unimplemented"
-    | TVar str -> failwith "unimplemented"
   in
   let new_vars = List.fold_left (fun v _ -> fresh () :: v) [] vars in
   subst (List.combine vars new_vars) t
 
-let rec type_expr (expr : parsed expr_ann) : types =
-  let rec check (gamma : env) (e : parsed expr_ann) : types =
+let rec type_expr (expression : parsed expr_ann) : types =
+  let rec check (gamma : env) (expr : parsed expr_ann) : types =
     let pos, e = expr in
     match e with
     | Unit -> TUnit
@@ -126,7 +135,7 @@ let rec type_expr (expr : parsed expr_ann) : types =
         TProd tup_types
     | Var id -> instantiate (lookup id gamma)
     | Binop (bop, e1, e2) -> check_bop gamma bop e1 e2
-    | Unaop (unop, e) -> check_unop gamma unop e
+    | Unaop (unop, e1) -> check_unop gamma unop e1
     | IfThen (e1, e2, e3) ->
         let t1 = check gamma e1 in
         let t2 = check gamma e2 in
@@ -140,6 +149,13 @@ let rec type_expr (expr : parsed expr_ann) : types =
         let fr = fresh () in
         let _ = unify t1 (TFun (t2, fr)) in
         fr
+    | Cons (e1, e2) ->
+        let t1 = check gamma e1 in
+        let t2 = check gamma e2 in
+        let _ = unify t2 (TCons t1) in
+        TCons t1
+    | Fun (pat, e1) -> failwith "unimplemented"
+    | MatchWithWhen (e, lst) -> failwith "unimplemented"
     | _ -> failwith "unimplemented"
   and check_bop (gamma : env) bop e1 e2 =
     let t1 = check gamma e1 in
@@ -191,7 +207,32 @@ let rec type_expr (expr : parsed expr_ann) : types =
         let fr = fresh () in
         let _ = unify t (TRef fr) in
         fr
+  and check_match_with_when gamma e_typ ret_typ lst =
+    match lst with
+    | [] -> ret_typ
+    | (e, e_opt, pat) :: tl ->
+        let t = check gamma e in
+        (match pat with
+        | PUnit -> unify TUnit e_typ
+        | PWild -> ()
+        | PBool _ ->
+            (* Get rid of PBool maybe? *)
+            unify TBool e_typ
+        | PInt _ ->
+            (* Get rid of PInt maybe? *)
+            unify TInt e_typ
+        | PString _ ->
+            (* Get rid of PString maybe? lol *)
+            unify TString e_typ
+        | PNil ->
+            let fr = fresh () in
+            unify (TCons fr) e_typ
+        | PVar x -> failwith "too hard. brain hurts"
+        | _ -> failwith "");
+        let _ = unify ret_typ t in
+        check_match_with_when gamma e_typ ret_typ tl
   in
-  collapse (check [] expr)
+
+  collapse (check [] expression)
 
 let type_prog parsed_ast = failwith "unimplemented"
