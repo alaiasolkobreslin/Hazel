@@ -154,9 +154,15 @@ let rec type_expr (expression : parsed expr_ann) : types =
         let t2 = check gamma e2 in
         let _ = unify t2 (TCons t1) in
         TCons t1
+    | MatchWithWhen (e, lst) ->
+        let t1 = check gamma e in
+        let fr = fresh () in
+        check_match_with_when gamma t1 fr lst
     | Fun (pat, e1) -> failwith "unimplemented"
-    | MatchWithWhen (e, lst) -> failwith "unimplemented"
-    | _ -> failwith "unimplemented"
+    | Let (pat, e1, e2) -> failwith "unimplemented"
+    | LetRec (lst, e1) -> failwith "unimplemented"
+    | Constructor (str, e1) -> failwith "unimplemented"
+    | Record lst -> failwith "unimplemented"
   and check_bop (gamma : env) bop e1 e2 =
     let t1 = check gamma e1 in
     let t2 = check gamma e2 in
@@ -207,28 +213,29 @@ let rec type_expr (expression : parsed expr_ann) : types =
         let fr = fresh () in
         let _ = unify t (TRef fr) in
         fr
+  and check_pat pat =
+    match pat with
+    | PUnit -> TUnit
+    | PWild -> fresh ()
+    | PBool _ -> TBool
+    | PString _ -> TString
+    | PInt _ -> TInt
+    | PVar x -> fresh ()
+    | PTup lst -> TProd (List.map (fun (_, x) -> check_pat x) lst)
+    | PNil -> TCons (fresh ())
+    | PCons ((_, pat1), (_, pat2)) ->
+        let t1 = check_pat pat1 in
+        let t2 = check_pat pat2 in
+        let _ = unify (TCons t1) t2 in
+        t2
+    | PSum (str, pat) -> failwith "unimplemented"
   and check_match_with_when gamma e_typ ret_typ lst =
     match lst with
     | [] -> ret_typ
-    | (e, e_opt, pat) :: tl ->
+    | (e, e_opt, (_, pat)) :: tl ->
         let t = check gamma e in
-        (match pat with
-        | PUnit -> unify TUnit e_typ
-        | PWild -> ()
-        | PBool _ ->
-            (* Get rid of PBool maybe? *)
-            unify TBool e_typ
-        | PInt _ ->
-            (* Get rid of PInt maybe? *)
-            unify TInt e_typ
-        | PString _ ->
-            (* Get rid of PString maybe? lol *)
-            unify TString e_typ
-        | PNil ->
-            let fr = fresh () in
-            unify (TCons fr) e_typ
-        | PVar x -> failwith "too hard. brain hurts"
-        | _ -> failwith "");
+        let pat_t = check_pat pat in
+        let _ = unify pat_t e_typ in
         let _ = unify ret_typ t in
         check_match_with_when gamma e_typ ret_typ tl
   in
