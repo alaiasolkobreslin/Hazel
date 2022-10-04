@@ -79,7 +79,7 @@ let rec unify (t1 : types) (t2 : types) : unit =
   | t, Subst ({ contents = TVar a } as r) ->
       r := t
   (* TODO: finish rest of cases *)
-  | _ -> failwith "cannot unify"
+  | _ -> failwith "unimplemented/cannot unify"
 
 let fresh =
   let source = Fresh.make (HashSet.make ()) in
@@ -158,8 +158,14 @@ let rec type_expr (expression : parsed expr_ann) : types =
         let t1 = check gamma e in
         let fr = fresh () in
         check_match_with_when gamma t1 fr lst
-    | Fun (pat, e1) -> failwith "unimplemented"
-    | Let (pat, e1, e2) -> failwith "unimplemented"
+    | Fun ((_, pat), e1) ->
+        let _, gamma' = check_pat pat in
+        check (gamma' @ gamma) e1
+    | Let ((_, pat), e1, e2) ->
+        let t1, gamma' = check_pat pat in
+        let t2 = check gamma e1 in
+        let _ = unify t1 t2 in
+        check (gamma' @ gamma) e2
     | LetRec (lst, e1) -> failwith "unimplemented"
     | Constructor (str, e1) -> failwith "unimplemented"
     | Record lst -> failwith "unimplemented"
@@ -213,28 +219,39 @@ let rec type_expr (expression : parsed expr_ann) : types =
         let fr = fresh () in
         let _ = unify t (TRef fr) in
         fr
-  and check_pat pat =
+  and check_pat pat : types * env =
     match pat with
-    | PUnit -> TUnit
-    | PWild -> fresh ()
-    | PBool _ -> TBool
-    | PString _ -> TString
-    | PInt _ -> TInt
-    | PVar x -> fresh ()
-    | PTup lst -> TProd (List.map (fun (_, x) -> check_pat x) lst)
-    | PNil -> TCons (fresh ())
+    | PUnit -> (TUnit, [])
+    | PWild -> (fresh (), [])
+    | PBool _ -> (TBool, [])
+    | PString _ -> (TString, [])
+    | PInt _ -> (TInt, [])
+    | PVar x ->
+        let fr = fresh () in
+        (fr, [ (x, ([], fr)) ])
+    | PTup lst ->
+        let lst', gamma =
+          List.fold_left
+            (fun (acc1, acc2) (_, elt) ->
+              let t, gamma = check_pat elt in
+              (acc1 @ [ t ], acc2 @ gamma))
+            ([], []) lst
+        in
+        (TProd lst', gamma)
+    | PNil -> (TCons (fresh ()), [])
     | PCons ((_, pat1), (_, pat2)) ->
-        let t1 = check_pat pat1 in
-        let t2 = check_pat pat2 in
+        let t1, gamma1 = check_pat pat1 in
+        let t2, gamma2 = check_pat pat2 in
         let _ = unify (TCons t1) t2 in
-        t2
+        (t2, gamma1 @ gamma2)
     | PSum (str, pat) -> failwith "unimplemented"
   and check_match_with_when gamma e_typ ret_typ lst =
     match lst with
     | [] -> ret_typ
     | (e, e_opt, (_, pat)) :: tl ->
+        (* TODO: FORGOT TO HANDLE E_OPT *)
         let t = check gamma e in
-        let pat_t = check_pat pat in
+        let pat_t, _ = check_pat pat in
         let _ = unify pat_t e_typ in
         let _ = unify ret_typ t in
         check_match_with_when gamma e_typ ret_typ tl
