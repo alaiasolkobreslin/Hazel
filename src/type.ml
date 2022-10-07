@@ -175,9 +175,9 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
         Binop (op, label_ast e1 var_env cons, label_ast e2 var_env cons) )
   | Unaop (op, e) ->
       ((var_env, TPlaceholder (fresh ())), Unaop (op, label_ast e var_env cons))
-  | Cons (e1, e2) ->
+  (* | Cons (e1, e2) ->
       ( (var_env, TPlaceholder (fresh ())),
-        Cons (label_ast e1 var_env cons, label_ast e2 var_env cons) )
+        Cons (label_ast e1 var_env cons, label_ast e2 var_env cons) ) *)
   | Constructor (str, exp) -> (
       match List.assoc_opt str cons with
       | None -> failwith "Constructor doesn't exist"
@@ -367,26 +367,143 @@ let rec contains_var x typ =
   | TChar -> false
   | TProd lst -> List.fold_left (fun b ty -> contains_var x typ || b) false lst
   | TSum lst ->
-      failwith "dammit this is annoying"
+      List.fold_left
+        (fun b (con, opt) ->
+          match opt with None -> b | Some typ' -> b || contains_var x typ')
+        false lst
       (* variants - first string removed so we can combine with alias *)
   | TCons ty -> contains_var x ty
   | TUnit -> false
   | TRef ty -> contains_var x ty
-  | TRecord lst -> failwith "hard case, come back later"
+  | TRecord lst ->
+      List.fold_left (fun b (con, typ') -> b || contains_var x typ') false lst
   | TVar y -> y = x
   | TConstraint _ -> false
   | TFun (ty1, ty2) -> contains_var x ty1 || contains_var x ty2
   | Subst _ -> failwith "???"
 
+let rec subst_type typ substout substin =
+  match substout with
+  | TVar s | TPlaceholder s -> (
+      match typ with
+      | TVar x when x = s -> substin
+      | TPlaceholder x when x = s -> substin
+      | TBool -> TBool
+      | TInt -> TInt
+      | TString -> TString
+      | TChar -> TChar
+      | TProd lst ->
+          TProd (List.map (fun x -> subst_type x substout substin) lst)
+      | TSum lst ->
+          TSum
+            (List.map
+               (fun (x, y) ->
+                 match y with
+                 | None -> (x, None)
+                 | Some t -> (x, Some (subst_type t substout substin)))
+               lst)
+      | TCons ty -> TCons (subst_type ty substout substin)
+      | TUnit -> TUnit
+      | TRef ty -> TRef (subst_type ty substout substin)
+      | TRecord lst ->
+          TRecord
+            (List.map (fun (x, y) -> (x, subst_type y substout substin)) lst)
+      | TVar y -> TVar y
+      | TConstraint t -> TConstraint t
+      | TFun (ty1, ty2) ->
+          TFun (subst_type ty1 substout substin, subst_type ty2 substout substin)
+      | _ -> failwith "invalid substitution")
+  | _ -> failwith "invalid substitution"
+
 let rec unify_constraints lst =
+  let remove_id =
+    List.filter_map (fun (x, y) -> if x = y then None else Some (x, y)) lst
+  in
   let find_help (x, y) =
     match x with
     | TVar s | TPlaceholder s -> not (contains_var s y)
     | _ -> false
   in
-  let find_subst = List.find_opt find_help lst in
+  let find_subst = List.find_opt find_help remove_id in
+  match find_subst with
+  | Some (x, y) ->
+      let new_lst =
+        List.map
+          (fun (t1, t2) -> (subst_type t1 x y, subst_type t2 x y))
+          remove_id
+      in
+      (x, y) :: unify_constraints new_lst
+  | None -> (
+      let find_help_func x =
+        match x with TFun (a, b), TFun (a', b') -> true | _ -> false
+      in
+      match List.find_opt find_help_func remove_id with
+      | Some (TFun (a, b), TFun (a', b')) ->
+          let removed =
+            List.filter_map
+              (fun (x, y) ->
+                if (x, y) = (TFun (a, b), TFun (a', b')) then None
+                else Some (x, y))
+              remove_id
+          in
+          (a, a') :: (b, b') :: removed
+      | _ -> remove_id)
 
-  failwith "to be implemented"
+(*| Unit
+  | Nil
+  | Int of Int64.t
+  | Bool of bool
+  | String of string
+  | Char of string
+  | Var of string
+  | Tuple of 'a expr_ann list
+  | IfThen of ('a expr_ann * 'a expr_ann * 'a expr_ann)
+  | Let of ('a pattern_ann * 'a expr_ann * 'a expr_ann)
+  | LetRec of (('a pattern_ann * 'a expr_ann) list * 'a expr_ann)
+  | MatchWithWhen of
+      ('a expr_ann * ('a expr_ann * 'a expr_ann option * 'a pattern_ann) list)
+    (*extra expr for when *)
+  | Fun of ('a pattern_ann * 'a expr_ann)
+  | App of ('a expr_ann * 'a expr_ann)
+  | Binop of (bop * 'a expr_ann * 'a expr_ann)
+  | Unaop of (unop * 'a expr_ann)
+  | Constructor of (string * 'a expr_ann)
+  | Record of (string * 'a expr_ann) list *)
+let rec app_subst sub exp =
+  let sout, sin = sub in
+  match exp with
+  | (lenv, typ), Unit -> ((lenv, subst_type typ sout sin), Unit)
+  | (lenv, typ), Bool b -> ((lenv, subst_type typ sout sin), Bool b)
+  | (lenv, typ), String s -> ((lenv, subst_type typ sout sin), String s)
+  | (lenv, typ), Nil -> ((lenv, subst_type typ sout sin), Nil)
+  | (lenv, typ), Char c -> ((lenv, subst_type typ sout sin), Char c)
+  | (lenv, typ), Var x -> ((lenv, subst_type typ sout sin), Var x)
+  | (lenv, typ), Tuple lst ->
+      ( (lenv, subst_type typ sout sin),
+        Tuple (List.map (fun x -> app_subst sub x) lst) )
+  | (lenv, typ), IfThen (b, e1, e2) ->
+      ( (lenv, subst_type typ sout sin),
+        IfThen (app_subst sub b, app_subst sub e1, app_subst sub e2) )
+  | (lenv, typ), Let (pat, e1, e2) ->
+      ( (lenv, subst_type typ sout sin),
+        Let (pat, app_subst sub e1, app_subst sub e2) )
+  | (lenv, typ), LetRec (lst, e2) ->
+      ( (lenv, subst_type typ sout sin),
+        LetRec (List.map (fun (x, y) -> (x, app_subst sub y)) lst, e2) )
+  | (lenv, typ), MatchWithWhen (e1, lst) ->
+      let mapper (e1, e2_opt, pat) =
+        match e2_opt with
+        | Some e -> (app_subst sub e1, Some (app_subst sub e), pat)
+        | None -> (app_subst sub e1, None, pat)
+      in
+      ( (lenv, subst_type typ sout sin),
+        MatchWithWhen (app_subst sub e1, List.map mapper lst) )
+  | (lenv, typ), Fun (pat, e) ->
+      ((lenv, subst_type typ sout sin), Fun (pat, app_subst sub e))
+  | (lenv, typ), App (e1, e2) ->
+      ((lenv, subst_type typ sout sin), App (app_subst sub e1, app_subst sub e2))
+  (* 今、これは大変ですね〜〜〜 *)
+  | _ -> failwith "unimplemented"
 
 let rec type_expr expr var_env typ_env =
   let pos, e = expr in
