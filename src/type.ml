@@ -502,92 +502,106 @@ let rec app_subst sub exp =
       ((lenv, subst_type typ sout sin), Fun (pat, app_subst sub e))
   | (lenv, typ), App (e1, e2) ->
       ((lenv, subst_type typ sout sin), App (app_subst sub e1, app_subst sub e2))
+  | (lenv, typ), Binop (op, e1, e2) ->
+      ( (lenv, subst_type typ sout sin),
+        Binop (op, app_subst sub e1, app_subst sub e2) )
+  | (lenv, typ), Unaop (op, e) ->
+      ((lenv, subst_type typ sout sin), Unaop (op, app_subst sub e))
+  | (lenv, typ), Constructor (con, e) ->
+      ((lenv, subst_type typ sout sin), Constructor (con, app_subst sub e))
+  | (lenv, typ), Record lst ->
+      ( (lenv, subst_type typ sout sin),
+        Record (List.map (fun (s, e) -> (s, app_subst sub e)) lst) )
   (* 今、これは大変ですね〜〜〜 *)
   | _ -> failwith "unimplemented"
 
-let rec type_expr expr var_env typ_env =
-  let pos, e = expr in
-  match e with
-  | Unit -> TUnit
-  | Nil -> TCons (TPlaceholder (fresh ()))
-  | Int _ -> TInt
-  | Bool _ -> TBool
-  | String _ -> TString
-  | Char _ -> TChar
-  | Tuple tup ->
-      let tup_types = List.map (fun elt -> type_expr elt var_env typ_env) tup in
-      TProd tup_types
-  | Var id -> (
-      match lookup var_env id with
-      | Some typ -> typ
-      | None -> failwith "Need fresh variable using TyVarVar here")
-  | Binop (bop, e1, e2) -> type_bop bop e1 e2 var_env typ_env
-  | Unaop (unop, e) -> type_unop unop e var_env typ_env
-  | IfThen (e1, e2, e3) ->
-      let t1 = type_expr e1 var_env typ_env in
-      let t2 = type_expr e2 var_env typ_env in
-      let t3 = type_expr e3 var_env typ_env in
-      let _ = unify t1 TBool in
-      let _ = unify t2 t3 in
-      t2
-  | App (e1, e2) ->
-      let t1 = type_expr e1 var_env typ_env in
-      let t2 = type_expr e2 var_env typ_env in
-      let fr = TPlaceholder (fresh ()) in
-      let _ = unify t1 (TFun (t2, fr)) in
-      fr
-  | _ -> failwith "unimplemented"
+let type_expr subst exp =
+  List.fold_left (fun exp sub -> app_subst sub exp) exp subst
 
-and type_bop bop e1 e2 var_env typ_env =
-  let t1 = type_expr e1 var_env typ_env in
-  let t2 = type_expr e2 var_env typ_env in
-  match bop with
-  | Plus | Minus | Mult | Div | Mod | HMult ->
-      let _ = unify t1 TInt in
-      let _ = unify t2 TInt in
-      TInt
-  | GT | GEQ | LT | LEQ ->
-      let _ = unify t1 TInt in
-      let _ = unify t2 TInt in
-      TBool
-  | And | Or ->
-      let _ = unify t1 TBool in
-      let _ = unify t2 TBool in
-      TBool
-  | Seq ->
-      let _ = unify t1 TUnit in
-      t2
-  | Cat ->
-      let _ = unify t1 TString in
-      let _ = unify t2 TString in
-      TString
-  | Ass ->
-      let _ = unify t1 (TRef t2) in
-      TUnit
-  | EQ | NEQ | PEQ | PNEQ ->
-      let _ = unify t1 t2 in
-      TBool
-  | Pipe ->
-      let fr = TPlaceholder (fresh ()) in
-      let _ = unify t2 (TFun (t1, fr)) in
-      fr
-  | ConsBop ->
-      let _ = unify t2 (TCons t1) in
-      TCons t1
+(* let rec type_expr expr var_env typ_env =
+      let pos, e = expr in
+      match e with
+      | Unit -> TUnit
+      | Nil -> TCons (TPlaceholder (fresh ()))
+      | Int _ -> TInt
+      | Bool _ -> TBool
+      | String _ -> TString
+      | Char _ -> TChar
+      | Tuple tup ->
+          let tup_types = List.map (fun elt -> type_expr elt var_env typ_env) tup in
+          TProd tup_types
+      | Var id -> (
+          match lookup var_env id with
+          | Some typ -> typ
+          | None -> failwith "Need fresh variable using TyVarVar here")
+      | Binop (bop, e1, e2) -> type_bop bop e1 e2 var_env typ_env
+      | Unaop (unop, e) -> type_unop unop e var_env typ_env
+      | IfThen (e1, e2, e3) ->
+          let t1 = type_expr e1 var_env typ_env in
+          let t2 = type_expr e2 var_env typ_env in
+          let t3 = type_expr e3 var_env typ_env in
+          let _ = unify t1 TBool in
+          let _ = unify t2 t3 in
+          t2
+      | App (e1, e2) ->
+          let t1 = type_expr e1 var_env typ_env in
+          let t2 = type_expr e2 var_env typ_env in
+          let fr = TPlaceholder (fresh ()) in
+          let _ = unify t1 (TFun (t2, fr)) in
+          fr
+      | _ -> failwith "unimplemented"
 
-and type_unop unop e var_env typ_env =
-  let t = type_expr e var_env typ_env in
-  match unop with
-  | Not ->
-      let _ = unify t TBool in
-      TBool
-  | Neg ->
-      let _ = unify t TInt in
-      TInt
-  | Ref -> TRef t
-  | Deref ->
-      let fr = TPlaceholder (fresh ()) in
-      let _ = unify t (TRef fr) in
-      fr
+   and type_bop bop e1 e2 var_env typ_env =
+     let t1 = type_expr e1 var_env typ_env in
+     let t2 = type_expr e2 var_env typ_env in
+     match bop with
+     | Plus | Minus | Mult | Div | Mod | HMult ->
+         let _ = unify t1 TInt in
+         let _ = unify t2 TInt in
+         TInt
+     | GT | GEQ | LT | LEQ ->
+         let _ = unify t1 TInt in
+         let _ = unify t2 TInt in
+         TBool
+     | And | Or ->
+         let _ = unify t1 TBool in
+         let _ = unify t2 TBool in
+         TBool
+     | Seq ->
+         let _ = unify t1 TUnit in
+         t2
+     | Cat ->
+         let _ = unify t1 TString in
+         let _ = unify t2 TString in
+         TString
+     | Ass ->
+         let _ = unify t1 (TRef t2) in
+         TUnit
+     | EQ | NEQ | PEQ | PNEQ ->
+         let _ = unify t1 t2 in
+         TBool
+     | Pipe ->
+         let fr = TPlaceholder (fresh ()) in
+         let _ = unify t2 (TFun (t1, fr)) in
+         fr
+     | ConsBop ->
+         let _ = unify t2 (TCons t1) in
+         TCons t1
+
+   and type_unop unop e var_env typ_env =
+     let t = type_expr e var_env typ_env in
+     match unop with
+     | Not ->
+         let _ = unify t TBool in
+         TBool
+     | Neg ->
+         let _ = unify t TInt in
+         TInt
+     | Ref -> TRef t
+     | Deref ->
+         let fr = TPlaceholder (fresh ()) in
+         let _ = unify t (TRef fr) in
+         fr
+*)
 
 let type_prog parsed_ast = failwith "unimplemented"
