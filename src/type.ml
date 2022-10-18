@@ -151,7 +151,7 @@ let rec label_ast (expr : 'a expr_ann) (var_env : (id * types) list)
       let new_lst =
         List.map
           (fun (a, b) ->
-            (annotate_pat a var_env cons, label_ast b cum_env cons))
+            (annotate_pat a cum_env cons, label_ast b cum_env cons))
           lst
       in
       ( (cum_env, TPlaceholder (fresh ())),
@@ -164,7 +164,7 @@ let rec label_ast (expr : 'a expr_ann) (var_env : (id * types) list)
             match b with
             | None ->
                 let new_env = label_pat c var_env cons in
-                (label_ast a new_env cons, b, annotate_pat c new_env cons)
+                (label_ast a new_env cons, None, annotate_pat c new_env cons)
             | Some e ->
                 let new_env = label_pat c var_env cons in
                 ( label_ast a new_env cons,
