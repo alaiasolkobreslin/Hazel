@@ -47,8 +47,8 @@ let fresh =
   (* fun () -> Subst (ref (TVar (Fresh.next source))) *)
   fun () -> Fresh.next source
 
-let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
-    (env * types) expr_ann =
+let rec label_ast (expr : 'a expr_ann) (var_env : (id * types) list)
+    (cons : constructors) : (env * types) expr_ann =
   let pos, e = expr in
   match e with
   | Unit -> ((var_env, TUnit), Unit)
@@ -117,14 +117,15 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
              unification *)
           ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder (fresh ())), PTup lst),
+              ( annotate_pat pat new_env cons,
                 label_ast e1 var_env cons,
                 label_ast e2 new_env cons ) )
       | PSum (con, pat'') ->
           let new_env = label_pat pat var_env cons in
           ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder (fresh ())), PSum (con, pat'')),
+              ( ( (var_env, TPlaceholder (fresh ())),
+                  PSum (con, annotate_pat pat'' new_env cons) ),
                 label_ast e1 var_env cons,
                 label_ast e2 new_env cons ) )
       | PNil ->
@@ -137,7 +138,10 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
           let new_env = label_pat pat var_env cons in
           ( (var_env, TPlaceholder (fresh ())),
             Let
-              ( ((var_env, TPlaceholder (fresh ())), PCons (pat1, pat2)),
+              ( ( (var_env, TPlaceholder (fresh ())),
+                  PCons
+                    ( annotate_pat pat1 new_env cons,
+                      annotate_pat pat2 new_env cons ) ),
                 label_ast e1 var_env cons,
                 label_ast e2 new_env cons ) ))
   | LetRec (lst, exp) ->
@@ -145,7 +149,10 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
         List.fold_right (fun (a, b) acc -> label_pat a acc cons) lst var_env
       in
       let new_lst =
-        List.map (fun (a, b) -> (a, label_ast b cum_env cons)) lst
+        List.map
+          (fun (a, b) ->
+            (annotate_pat a var_env cons, label_ast b cum_env cons))
+          lst
       in
       ( (cum_env, TPlaceholder (fresh ())),
         LetRec (new_lst, label_ast exp cum_env cons) )
@@ -157,16 +164,19 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
             match b with
             | None ->
                 let new_env = label_pat c var_env cons in
-                (label_ast a new_env cons, b, c)
+                (label_ast a new_env cons, b, annotate_pat c new_env cons)
             | Some e ->
                 let new_env = label_pat c var_env cons in
-                (label_ast a new_env cons, Some (label_ast e new_env cons), c))
+                ( label_ast a new_env cons,
+                  Some (label_ast e new_env cons),
+                  annotate_pat c new_env cons ))
           lst
       in
       ((var_env, TPlaceholder (fresh ())), MatchWithWhen (new_exp, new_lst))
   | Fun (pat, exp) ->
       let new_env = label_pat pat var_env cons in
-      ((var_env, TPlaceholder (fresh ())), Fun (pat, label_ast exp new_env cons))
+      ( (var_env, TPlaceholder (fresh ())),
+        Fun (annotate_pat pat new_env cons, label_ast exp new_env cons) )
   | App (e1, e2) ->
       ( (var_env, TPlaceholder (fresh ())),
         App (label_ast e1 var_env cons, label_ast e2 var_env cons) )
@@ -186,6 +196,30 @@ let rec label_ast expr (var_env : (id * types) list) (cons : constructors) :
   | Record lst ->
       ( (var_env, TPlaceholder (fresh ())),
         Record (List.map (fun (a, b) -> (a, label_ast b var_env cons)) lst) )
+
+and annotate_pat pat var_env cons =
+  let _, pat' = pat in
+  match pat' with
+  | PUnit -> ((var_env, TUnit), PUnit)
+  | PWild -> ((var_env, TPlaceholder (fresh ())), PWild)
+  | PBool b -> ((var_env, TBool), PBool b)
+  | PInt n -> ((var_env, TInt), PInt n)
+  | PString s -> ((var_env, TString), PString s)
+  | PVar s -> (
+      match List.assoc_opt s var_env with
+      | None -> ((var_env, TPlaceholder (fresh ())), PVar s)
+      | Some ty -> ((var_env, ty), PVar s))
+  | PTup lst ->
+      ( (var_env, TPlaceholder (fresh ())),
+        PTup (List.map (fun p -> annotate_pat p var_env cons) lst) )
+  | PSum (con, pat'') ->
+      ( (var_env, TPlaceholder (fresh ())),
+        PSum (con, annotate_pat pat'' var_env cons) )
+  | PNil -> ((var_env, TCons (TPlaceholder (fresh ()))), PNil)
+  | PCons (pat1, pat2) ->
+      ( (var_env, TPlaceholder (fresh ())),
+        PCons (annotate_pat pat1 var_env cons, annotate_pat pat2 var_env cons)
+      )
 
 and label_pat pat var_env cons =
   let _, pat' = pat in
